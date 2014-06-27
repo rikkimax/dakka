@@ -1,0 +1,10 @@
+{
+	"name": "dakka2",
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2014, rikki",
+	"authors": ["rikki"],
+	"dependencies": {
+		"vibe-d": "~master",
+		"pack-d": "~master"
+	}
+}
