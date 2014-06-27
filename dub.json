@@ -1,8 +1,8 @@
 {
-	"name": "dakka2",
-	"description": "A minimal D application.",
-	"copyright": "Copyright © 2014, rikki",
-	"authors": ["rikki"],
+	"name": "dakka",
+	"description": "An actor framework, that supports remote method calls.",
+	"copyright": "Copyright © 2014, Richard Andrew Cattermole",
+	"authors": ["Richard Andrew Cattermole"],
 	"dependencies": {
 		"vibe-d": "~master",
 		"pack-d": "~master"
