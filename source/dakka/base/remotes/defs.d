@@ -142,7 +142,6 @@ class RemoteDirector {
 
 
 	/**
-	 * TODO
 	 * Received a request to create a class instance.
 	 * 
 	 * Returns:
@@ -191,6 +190,11 @@ class RemoteDirector {
 		remoteClasses[uid] = cast(shared)RemoteClassIdentifier(addr, identifier, parent);
 	}
 
+	bool receivedDeleteClass(string addr, string identifier) {
+		getInstance(identifier).die();
+		return true;
+	}
+
 	final {
 		void killConnection(string addr) {
 			if (addr in remoteConnections)
@@ -232,9 +236,16 @@ class RemoteDirector {
 		}
 
 		void killClass(string addr, string type, string identifier) {
-			import std.algorithm : remove;
+			import std.algorithm : filter;
 			// TODO: something
-			remove((cast()remoteClassInstances[addr][type]), identifier);
+			string[] newIds;
+			foreach(v; remoteClassInstances[addr][type]) {
+				if (v != identifier)
+					newIds ~= v;
+			}
+
+			remoteClassInstances[addr][type] = cast(shared)newIds;
+			remoteConnections[addr].send(DCA.DeleteClass, identifier);
 		}
 
 		void callClassNonBlocking(string identifier, ubyte[] data){}//TODO

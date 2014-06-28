@@ -103,6 +103,14 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 					// TODO: how do we get the parent identifier, last arg?
 					director.receivedEndClassCreate(received.stage3_actor_verify.uid, addr, received.stage3_actor_verify.classInstanceIdentifier, null);
 					logInfo("Client %s has created an instance of class %s", addr, received.stage3_actor_verify.classInstanceIdentifier);
+				} else if (received.substage == 2) {
+					// request to delete an actor instance
+					bool success = director.receivedDeleteClass(addr, received.stage3_actor_destroy);
+					askToKill(conn, received.stage3_actor_destroy, success);
+					logInfo("Client %s has requested us to kill %s and we are %s", addr, received.stage3_actor_destroy, success ? "complying" : "not complying");
+				} else if (received.substage == 3) {
+					// requested to delete an actor instance response
+					logInfo("Client %s has replied that it has %s killed %s", addr, received.stage3_actor_destroy_verify.success ? "been" : "not been", received.stage3_actor_destroy_verify.classInstanceIdentifier);
 				}
 			}
 

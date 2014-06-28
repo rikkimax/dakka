@@ -78,35 +78,33 @@ class Actor {
 	void die(bool informSupervisor = true) {
 		import dakka.base.remotes.defs;
 		import dakka.base.registration.actors : destoreActor;
-		auto director = getDirector();
 
-		if (informSupervisor) {
-			if (supervisor !is null) {
-				if (supervisor.isLocalInstance || director.validAddressIdentifier((cast(ActorRef!(Actor))supervisor).remoteAddressIdentifier)) {
-					supervisor.kill(this);
+		// seems silly to do anything if its a remote instance.
+		// we don't know what to do with it.
+		// leave it for the ActorRef
+		if (!isDying_ && isAlive_ && isLocalInstance_) {
+			// stop any more errors being received.
+			isDying_ = true;
+			auto director = getDirector();
+
+			if (informSupervisor) {
+				if (supervisor !is null) {
+					if (supervisor.isLocalInstance || director.validAddressIdentifier((cast(ActorRef!(Actor))supervisor).remoteAddressIdentifier)) {
+						supervisor.kill(this);
+					}
 				}
 			}
+
+			onStop();
+
+			// this will enable calling of methods that may be wrapped, by it being set after onstop.
+			isAlive_ = false;
+			isDying_ = false;
+
+			foreach(child; _children) {
+				child.die();
+			}
 		}
-
-		// stop any more errors being received.
-		isDying_ = true;
-		
-		// inform the central code that we are removing one.
-		// it'll handle calling onStop
-		(cast(Actor)this).onStop();
-
-		// this will enable calling of methods that may be wrapped, by it being set after onstop.
-		isAlive_ = false;
-
-		foreach(child; _children) {
-			child.die();
-		}
-
-		// no point in it being in destructor.
-		// As it is also stored within the actor registration
-		//  (so won't have that called till the reference in the actor registration goes bye bye).
-		director.localActorDies(typeText!(typeof(this)), identifier);
-		destoreActor(identifier_);
 	}
 	
 	/**
@@ -176,11 +174,32 @@ class ActorRef(T : Actor) : T {
 				// register it with out director as our current instance.
 				localRef = new T(supervisor);
 				identifier_ = director.localActorCreate(typeText!T);
+				localRef.identifier_ = identifier_;
 				storeActor(localRef);
 				
 				// new thread for on start. Yes its evil. But it'll work.
 				runTask({ (cast(T)localRef).onStart(); });
 			}
+		}
+	}
+
+	override void die(bool informSupervisor = true) {
+		import dakka.base.registration.actors : destoreActor;
+
+
+		auto director = getDirector();
+		enum type = typeText!T;
+
+		if (isLocalInstance_ && !isDying_ && isAlive_) {
+			super.die(informSupervisor);
+
+			// no point in it being in destructor.
+			// As it is also stored within the actor registration
+			//  (so won't have that called till the reference in the actor registration goes bye bye).
+			director.localActorDies(type, identifier);
+			destoreActor(identifier_);
+		} else {
+			director.killClass(remoteAddressIdentifier, type, identifier);
 		}
 	}
 
