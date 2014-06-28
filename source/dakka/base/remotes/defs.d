@@ -1,5 +1,7 @@
 ﻿module dakka.base.remotes.defs;
 import dakka.base.defs;
+import dakka.base.registration.actors;
+import dakka.base.remotes.messages : utc0Time;
 import vibe.d : msecs, Task, send, sleep;
 
 private __gshared {
@@ -27,7 +29,10 @@ class RemoteDirector {
 
 	private shared {
 		Task[string] remoteConnections; // ThreadID[remoteAddressIdentifier]
-		RemoteClassIdentifier[string] remoteClasses; // ClassIdentifier[instanceIdentifier]
+		RemoteClassIdentifier[string] remoteClasses; // ClassIdentifier[uniqueInstanceIdentifier]
+		string[][string][string] remoteClassInstances; // ClassIdentifier[][ClassType][remoteAddressIdentifier]
+		string[][string] nodeCapabilities; //capability[][remoteAddressIdentifier]
+		string[][string] localClasses; // ClassInstanceIdentifier[][ClassIdentifier]
 	}
 
 	bool validAddressIdentifier(string adder) {return (adder in remoteConnections) !is null;}
@@ -44,18 +49,99 @@ class RemoteDirector {
 	bool clientCapabilitiesValidator(string[]) {return true;}
 
 
-	void assign(string addr, Task task) { remoteConnections[addr] = cast(shared)task; }
-	void unassign(string addr) { remoteConnections.remove(addr); }
-	bool shouldContinueUsingNode(string addr, ulong outBy) {return true;}
+	void assign(string addr, Task task) {
+		remoteConnections[addr] = cast(shared)task;
+	}
+
+	void unassign(string addr) {
+		remoteConnections.remove(addr);
+		nodeCapabilities.remove(addr);
+	}
+
+	bool shouldContinueUsingNode(string addr, ulong outBy) {
+		return true;
+	}
+
+	void receivedNodeCapabilities(string addr, string[] caps) {
+		nodeCapabilities[addr] = cast(shared)caps;
+	}
 
 
-	bool canCreateRemotely(T : Actor)() {return false;} // TODO
-	bool preferablyCreateRemotely(T : Actor)() {return false;} // TODO
-	string preferableRemoteNodeCreation(string identifier) {return null;} // TODO
+	bool canCreateRemotely(T : Actor)() {
+		import std.algorithm : canFind;
+		string[] required = capabilitiesRequired!T;
+
+		foreach(addr, caps; nodeCapabilities) {
+
+			bool good = true;
+			foreach(cap; required) {
+				if (!canFind(cast()caps, cap)) {
+					good = false;
+					break;
+				}
+			}
+			if (good) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool preferablyCreateRemotely(T : Actor)() {
+		// ugh our load balencing?
+		return true;
+	}
+
+	string preferableRemoteNodeCreation(string identifier) {
+		import std.algorithm : canFind;
+		string[] required = capabilitiesRequired(identifier);
+		string[] addrs;
+		
+		foreach(addr, caps; nodeCapabilities) {
+			
+			bool good = true;
+			foreach(cap; required) {
+				if (!canFind(cast()caps, cap)) {
+					good = false;
+					break;
+				}
+			}
+			if (good) {
+				addrs ~= addr;
+			}
+		}
+
+		if (addrs is null)
+			return null;
 
 
-	string localActorCreate(string type) {return null;} // TODO
-	void localActorDies(string type, string identifier) {} // TODO
+		// a crude form of load balancing
+
+		size_t less = size_t.max;
+		string addr2;
+
+		foreach(addr, values; remoteClassInstances) {
+			if (values.get(identifier, []).length < less) {
+				less = values.length;
+				addr2 = addr;
+			}
+		}
+		return addr2;
+	}
+
+
+	string localActorCreate(string type) {
+		import std.conv : to;
+		string id = type ~ to!string(utc0Time) ~ to!string(localClasses[type].length);
+		localClasses[type] ~= id;
+		return id;
+	}
+
+	void localActorDies(string type, string identifier) {
+		import std.algorithm : remove;
+		remove((cast()localClasses[type]), identifier);
+	}
 
 
 	/**
@@ -105,7 +191,6 @@ class RemoteDirector {
 		 * 		Or null upon the connection ending.
 		 */
 		string createClass(string addr, string identifier, string parent) {
-			import dakka.base.remotes.messages : utc0Time;
 			import std.conv : to;
 
 			if (addr in remoteConnections) {
@@ -118,11 +203,19 @@ class RemoteDirector {
 					while(uid !in remoteClasses && (cast()remoteConnections[addr]).running)
 					{sleep(25.msecs());}
 
-					if (uid in remoteClasses)
+					if (uid in remoteClasses) {
+						remoteClassInstances[addr][identifier] ~= remoteClasses[uid].identifier;
 						return remoteClasses[uid].identifier;
+					}
 				}
 			}
 			return null;
+		}
+
+		void killClass(string addr, string type, string identifier) {
+			import std.algorithm : remove;
+			// TODO: something
+			remove((cast()remoteClassInstances[addr][type]), identifier);
 		}
 
 		void callClassBlocking(string identifier, ubyte[] data){}//TODO

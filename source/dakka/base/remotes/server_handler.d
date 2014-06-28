@@ -45,6 +45,7 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 						break;
 					}
 
+					director.receivedNodeCapabilities(addr, received.stage0_capabilities);
 					capabilitiesMessage(conn);
 
 					logInfo("Client %s has capabilities %s", addr, received.stage0_capabilities.join(", "));

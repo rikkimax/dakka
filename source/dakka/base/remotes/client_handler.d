@@ -42,6 +42,7 @@ void handleClientMessageServer(DakkaRemoteServer settings) {
 						stage = 1;
 						sendSyncMessage(conn);
 
+						director.receivedNodeCapabilities(addr, received.stage0_capabilities);
 						logInfo("Server %s has capabilities %s", addr, received.stage0_capabilities.join(", "));
 					}
 				} else if (received.stage == 1) {

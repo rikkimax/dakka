@@ -74,6 +74,7 @@ class Actor {
 		 */
 		void die(bool informSupervisor = true) {
 			import dakka.base.remotes.defs;
+			import dakka.base.registration.actors : destoreActor;
 			auto director = getDirector();
 
 			if (informSupervisor) {
@@ -99,9 +100,10 @@ class Actor {
 			}
 
 			// no point in it being in destructor.
-			// As it is also stored within the director
-			//  (so won't have that called till the reference in the director goes bye bye).
-			director.localInstanceDies(typeText!(typeof(this)), identifier);
+			// As it is also stored within the actor registration
+			//  (so won't have that called till the reference in the actor registration goes bye bye).
+			director.localActorDies(typeText!(typeof(this)), identifier);
+			destoreActor(identifier_);
 		}
 		
 		/**
@@ -129,12 +131,17 @@ class Actor {
 
 class ActorRef(T : Actor) : T {
 	import dakka.base.remotes.defs : getDirector;
-	import dakka.base.registration.actors : canLocalCreate;
+	import dakka.base.registration.actors : canLocalCreate, storeActor;
 
 	shared {
 		private {
 			T localRef;
 			string remoteAddressIdentifier;
+		}
+
+		this(string identifier, string remoteAddress) {
+			identifier_ = identifier;
+			remoteAddressIdentifier = remoteAddressIdentifier;
 		}
 		
 		this(shared(Actor) supervisor = null) {
@@ -164,6 +171,7 @@ class ActorRef(T : Actor) : T {
 				// register it with out director as our current instance.
 				localRef = new shared T(supervisor);
 				identifier_ = director.localActorCreate(typeText!T);
+				storeActor(localRef);
 				(cast(T)localRef).onStart();
 			}
 		}

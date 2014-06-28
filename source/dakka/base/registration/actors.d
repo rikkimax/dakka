@@ -7,7 +7,7 @@ __gshared private {
 	string[][string] capabilityClasses;
 	ActorInformation[string] classesInfo;
 
-	Actor[string] localInstances; // instance[instanceIdentifier]
+	shared(Actor)[string] localInstances; // instance[instanceIdentifier]
 	string[][string] remoteInstances; // instanceIdentifier[][adder]
 }
 
@@ -71,6 +71,30 @@ ActorInformation getActorInformation(string name) {
 	synchronized {
 		assert(name in classesInfo, "Class " ~ name ~ " has not been registered.");
 		return classesInfo[name];
+	}
+}
+
+string[] capabilitiesRequired(T : Actor)() {
+	synchronized {
+		return capabilityClasses[typeText!T];
+	}
+}
+
+string[] capabilitiesRequired(string identifier) {
+	synchronized {
+		return capabilityClasses[identifier];
+	}
+}
+
+void storeActor(shared(Actor) actor) {
+	synchronized {
+		localInstances[actor.identifier] = actor;
+	}
+}
+
+void destoreActor(string identifier) {
+	synchronized {
+		localInstances.remove(identifier);
 	}
 }
 
