@@ -20,7 +20,7 @@ string getBuildTitle() {
 
 class Actor {
 	import vibe.d : runTask;
-	import binary.pack;
+	import cerealed;
 
 	this(Actor supervisor = null, bool isLocalInstance = true) {
 		this.supervisor_ = supervisor;

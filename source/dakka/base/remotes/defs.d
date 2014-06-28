@@ -237,8 +237,8 @@ class RemoteDirector {
 			remove((cast()remoteClassInstances[addr][type]), identifier);
 		}
 
-		void callClassBlocking(string identifier, ubyte[] data){}//TODO
-		ubyte[] callClassNonBlocking(string identifier, ubyte[] data){return null;}//TODO
+		void callClassNonBlocking(string identifier, ubyte[] data){}//TODO
+		ubyte[] callClassBlocking(string identifier, ubyte[] data){return null;}//TODO
 	}
 }
 

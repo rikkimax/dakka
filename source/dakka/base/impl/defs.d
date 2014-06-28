@@ -60,21 +60,6 @@ pure string generateFuncHandler(T : Actor, string m)() {
 	return ret;
 }
 
-pure string packFormat(T : Actor, string m, T t = new T())() {
-	import binary.format;
-	import std.conv : to;
-
-	static if (ParameterTypeTuple!(__traits(getMember, t, m)).length == 1) {
-		enum char format = formatCharOf!(ParameterTypeTuple!(__traits(getMember, t, m))[0]);
-		pragma(msg, format);
-		return to!string(format);
-	} else static if (ParameterTypeTuple!(__traits(getMember, t, m)).length > 1) {
-		return formatOf!(ParameterTypeTuple!(__traits(getMember, t, m)));
-	} else {
-		return "";
-	}
-}
-
 pure string generateFuncCall(T : Actor, string m, T t = new T())() {
 	string ret;
 	foreach(n; ParameterIdentifierTuple!(mixin("t." ~ m))) {

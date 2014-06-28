@@ -18,7 +18,7 @@ void main(string[] args) {
 				logInfo("start of actor test");
 				auto aref = new ActorRef!MyActorA;
 				logInfo("id of actor created %s %s", aref.identifier, aref.isLocalInstance ? "is local" : "is not local");
-				//aref.test("Hiii from the client");
+				aref.test("Hiii from the client");
 			});
 		}
 		if (args.length == 1 || (args.length == 2 && args[1] == "server")) {
