@@ -4,7 +4,7 @@
 	"copyright": "Copyright © 2014, Richard Andrew Cattermole",
 	"authors": ["Richard Andrew Cattermole"],
 	"dependencies": {
-		"vibe-d": "~master",
+		"vibe-d": ">=0.7.20",
 		"pack-d": "~master"
 	},
 	"versions": ["VibeCustomMain"]

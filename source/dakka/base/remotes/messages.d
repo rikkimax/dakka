@@ -231,6 +231,9 @@ struct DakkaMessage {
 				stream.write(dataOut);
 			}
 		}
+
+		stream.flush();
+		logInfo("Sent something to %s", stream.remoteAddress.toString());
 	}
 }
 
@@ -437,10 +440,12 @@ void listenForCommunications(TCPConnection conn, RemoteDirector director) {
 						break;
 				}
 			});
+			sleep(25.msecs);
 		}
 		
 		director.unassign(conn.remoteAddress.toString());
 	});
 
-    director.assign(conn.remoteAddress.toString(), task);      
+    director.assign(conn.remoteAddress.toString(), task);
+	logInfo("Listening for connections from the director started up");
 }

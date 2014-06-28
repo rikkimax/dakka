@@ -4,25 +4,25 @@ import dakka.base.registration.actors;
 import dakka.base.remotes.messages : utc0Time;
 import vibe.d : msecs, Task, send, sleep;
 
-private __gshared {
+private shared {
 	RemoteDirector director;
 
 	shared static this() {
-		director = new RemoteDirector();
+		director = cast(shared)new RemoteDirector();
 	}
 }
 
 void setDirector(T : RemoteDirector)() {
-	directory = new T();
+	directory = cast(shared)new T();
 }
 
 void setDirector(RemoteDirector dir) {
-	director = dir;
+	director = cast(shared)dir;
 }
 
 RemoteDirector getDirector() {
 	synchronized {
-		return director;
+		return cast()director;
 	}
 }
 
@@ -280,9 +280,8 @@ void clientConnect(DakkaRemoteServer[] servers...) {
 
 void serverStart(DakkaServerSettings[] servers...) {
 	import dakka.base.remotes.server_handler;
-	import vibe.d : runTask;
 
 	foreach(server; servers) {
-		runTask({handleServerMessageServer(server);});
+		handleServerMessageServer(server);
 	}
 }

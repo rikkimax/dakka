@@ -16,6 +16,7 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 
 		ubyte stage;
 
+		logInfo("Main loop for client %s", addr);
 		while(conn.connected) {
 			DakkaMessage sending;
 			DakkaMessage received;
@@ -99,6 +100,8 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 					logInfo("Client %s has asked us to create a %s with parent %s", addr, received.stage3_actor_create.classIdentifier, received.stage3_actor_create.parentInstanceIdentifier);
 				}
 			}
+
+			sleep(25.msecs);
 		}
 
 		logInfo("Client disconnected %s", addr);

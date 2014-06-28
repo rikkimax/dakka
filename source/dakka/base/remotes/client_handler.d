@@ -20,6 +20,7 @@ void handleClientMessageServer(DakkaRemoteServer settings) {
 			ubyte stage;
 			size_t iteration;
 
+			logInfo("Main loop for server %s", addr);
 			while(conn.connected) {
 				if (iteration % 100 == 5 && stage > 0)
 					sendSyncMessage(conn);
@@ -103,6 +104,7 @@ void handleClientMessageServer(DakkaRemoteServer settings) {
 				}
 
 				iteration++;
+				sleep(25.msecs);
 			}
 
 			logInfo("Server disconnected %s", addr);
