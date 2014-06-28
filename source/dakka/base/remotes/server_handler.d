@@ -93,6 +93,7 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 					logInfo("Client %s asked for our actors %s information", addr, received.stage2_actor_request);
 				} else if (received.substage == 3) {
 					logInfo("Client %s has told us their actors %s information", addr, received.stage2_actor.name);
+					logActorsInfo(received.stage2_actor, addr);
 				}
 			} else if (received.stage == 3) {
 				if (received.substage == 0) {

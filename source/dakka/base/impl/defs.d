@@ -2,7 +2,7 @@
 import dakka.base.defs;
 import std.traits;
 
-pure string getActorImplComs(T : Actor, shared(T) t = new shared T())() {
+pure string getActorImplComs(T : Actor, T t = new T())() {
 	string ret;
 	ret ~= "override {\n";
 	
@@ -20,7 +20,7 @@ pure string getActorImplComs(T : Actor, shared(T) t = new shared T())() {
 	return ret;
 }
 
-pure string funcDeclText(T : Actor, string m, shared(T) t = new shared T())() {
+pure string funcDeclText(T : Actor, string m, T t = new T())() {
 	string ret;
 	ret ~= typeText!(ReturnType!(__traits(getMember, t, m)));
 	ret ~= " " ~ m ~ "(";
@@ -60,7 +60,7 @@ pure string generateFuncHandler(T : Actor, string m)() {
 	return ret;
 }
 
-pure string packFormat(T : Actor, string m, shared(T) t = new shared T())() {
+pure string packFormat(T : Actor, string m, T t = new T())() {
 	import binary.format;
 	import std.conv : to;
 
@@ -75,7 +75,7 @@ pure string packFormat(T : Actor, string m, shared(T) t = new shared T())() {
 	}
 }
 
-pure string generateFuncCall(T : Actor, string m, shared(T) t = new shared T())() {
+pure string generateFuncCall(T : Actor, string m, T t = new T())() {
 	string ret;
 	foreach(n; ParameterIdentifierTuple!(mixin("t." ~ m))) {
 		ret ~= n ~ ", ";
@@ -87,7 +87,7 @@ pure string generateFuncCall(T : Actor, string m, shared(T) t = new shared T())(
 	return ret;
 }
 
-pure bool hasReturnValue(T : Actor, string m, shared(T) t = new shared T())() {
+pure bool hasReturnValue(T : Actor, string m, T t = new T())() {
 	static if (ReturnType!(__traits(getMember, t, m)).stringof != "void") {
 		return true;
 	} else {

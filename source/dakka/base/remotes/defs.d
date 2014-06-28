@@ -176,11 +176,11 @@ class RemoteDirector {
 			}
 			//		is the parent a local class?
 			if (localInstance) {
-				parentRef = getInstance(parent).referenceOfActor;
+				parentRef = cast(shared)getInstance(parent).referenceOfActor;
 				// 		else
 			} else {
 				//  		create a new one via actorOf (in some form)
-				parentRef = new shared ActorRef!Actor(parent, addr);
+				parentRef = cast(shared)new ActorRef!Actor(parent, addr);
 			}
 		}
 

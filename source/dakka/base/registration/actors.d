@@ -20,7 +20,7 @@ void registerActor(T : Actor)() {
 			}
 		}
 		classesInfo[typeText!T] = extractActorInfo!T;
-		createLocalReferenceInstance[typeText!T] = { return new shared ActorRef!T; };
+		createLocalReferenceInstance[typeText!T] = { return cast(shared)new ActorRef!T; };
 	}
 }
 
@@ -94,9 +94,9 @@ string[] capabilitiesRequired(string identifier) {
 	}
 }
 
-void storeActor(shared(Actor) actor) {
+void storeActor(Actor actor) {
 	synchronized {
-		localInstances[actor.identifier] = actor;
+		localInstances[actor.identifier] = cast(shared)actor;
 	}
 }
 
@@ -106,16 +106,16 @@ void destoreActor(string identifier) {
 	}
 }
 
-shared(Actor) getInstance(string identifier) {
+Actor getInstance(string identifier) {
 	synchronized {
-		return localInstances[identifier];
+		return cast()localInstances[identifier];
 	}
 }
 
-shared(Actor) createLocalActor(string type) {
+Actor createLocalActor(string type) {
 	synchronized {
 		assert(type in classesInfo, "Class " ~ type ~ " has not been registered.");
-		return createLocalReferenceInstance[type]();
+		return cast()createLocalReferenceInstance[type]();
 	}
 }
 

@@ -449,3 +449,26 @@ void listenForCommunications(TCPConnection conn, RemoteDirector director) {
     director.assign(conn.remoteAddress.toString(), task);
 	logInfo("Listening for connections from the director started up");
 }
+
+void logActorsInfo(ActorInformation info, string addr) {
+	string desc;
+	desc ~= "class " ~ info.name ~ " {\n";
+	foreach(method; info.methods) {
+		desc ~= "    " ~ method.return_type ~ " " ~ method.name ~ "(";
+		foreach(arg; method.arguments) {
+			if (arg.usage == ActorMethodArgumentUsage.In)
+				desc ~= "in ";
+			else if (arg.usage == ActorMethodArgumentUsage.Out)
+				desc ~= "out ";
+			else if (arg.usage == ActorMethodArgumentUsage.Ref)
+				desc ~= "ref ";
+			desc ~= arg.type ~ ", ";
+		}
+		if (method.arguments.length > 0)
+			desc.length -= 2;
+		desc ~= ");\n";
+	}
+	desc ~= "}";
+
+	logInfo("Node %s has told us their actors %s information\n%s", addr, info.name, desc);
+}

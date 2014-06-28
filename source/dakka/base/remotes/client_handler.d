@@ -75,26 +75,9 @@ void handleClientMessageServer(DakkaRemoteServer settings) {
 
 						logInfo("Server %s asked for our actors %s information", addr, received.stage2_actor_request);
 					} else if (received.substage == 3) {
-						string desc;
-						desc ~= "class " ~ received.stage2_actor.name ~ " {\n";
-						foreach(method; received.stage2_actor.methods) {
-							desc ~= "    " ~ method.return_type ~ " " ~ method.name ~ "(";
-							foreach(arg; method.arguments) {
-								if (arg.usage == ActorMethodArgumentUsage.In)
-									desc ~= "in ";
-								else if (arg.usage == ActorMethodArgumentUsage.Out)
-									desc ~= "out ";
-								else if (arg.usage == ActorMethodArgumentUsage.Ref)
-									desc ~= "ref ";
-								desc ~= arg.type ~ ", ";
-							}
-							if (method.arguments.length > 0)
-								desc.length -= 2;
-							desc ~= ");\n";
-						}
-						desc ~= "}";
+						logActorsInfo(received.stage2_actor, addr);
 
-						logInfo("Server %s has told us their actors %s information\n%s", addr, received.stage2_actor.name, desc);
+						logInfo("Server %s has told us their actors %s information", addr, received.stage2_actor.name);
 					}
 				} else if (received.stage == 3) {
 					if (received.substage == 0) {
