@@ -9,6 +9,7 @@ __gshared private {
 
 	shared(Actor)[string] localInstances; // instance[instanceIdentifier]
 	string[][string] remoteInstances; // instanceIdentifier[][adder]
+	shared(Actor)delegate() [string] createLocalReferenceInstance;
 }
 
 void registerActor(T : Actor)() {
@@ -19,14 +20,20 @@ void registerActor(T : Actor)() {
 			}
 		}
 		classesInfo[typeText!T] = extractActorInfo!T;
+		createLocalReferenceInstance[typeText!T] = { return new shared ActorRef!T; };
 	}
 }
 
 bool canLocalCreate(T : Actor)() {
+	return canLocalCreate(typeText!T);
+}
+
+bool canLocalCreate(string type) {
 	synchronized {
 		if (!hasCapabilities()) return true;
-		
-		foreach(c; capabilityClasses[typeText!T]) {
+		if (type !in capabilityClasses) return true;
+
+		foreach(c; capabilityClasses[type]) {
 			if (!hasCapability(c)) return false;
 		}
 		
@@ -76,6 +83,7 @@ ActorInformation getActorInformation(string name) {
 
 string[] capabilitiesRequired(T : Actor)() {
 	synchronized {
+		if (typeText!T !in capabilityClasses) return [];
 		return capabilityClasses[typeText!T];
 	}
 }
@@ -95,6 +103,19 @@ void storeActor(shared(Actor) actor) {
 void destoreActor(string identifier) {
 	synchronized {
 		localInstances.remove(identifier);
+	}
+}
+
+shared(Actor) getInstance(string identifier) {
+	synchronized {
+		return localInstances[identifier];
+	}
+}
+
+shared(Actor) createLocalActor(string type) {
+	synchronized {
+		assert(type in classesInfo, "Class " ~ type ~ " has not been registered.");
+		return createLocalReferenceInstance[type]();
 	}
 }
 

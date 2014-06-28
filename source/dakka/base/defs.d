@@ -53,11 +53,15 @@ class Actor {
 							return cast(shared(T))child;
 						}
 					}
-					
+
 					auto ret = new shared ActorRef!T(cast(shared)this);
 					_children ~= ret;
 					return ret;
 				}
+			}
+
+			shared(typeof(cast()this)) referenceOfActor() {
+				return new shared ActorRef!(typeof(cast()this))(cast(shared)this);
 			}
 		}
 		
@@ -142,37 +146,47 @@ class ActorRef(T : Actor) : T {
 		this(string identifier, string remoteAddress) {
 			identifier_ = identifier;
 			remoteAddressIdentifier = remoteAddressIdentifier;
+			isLocalInstance_ = false;
 		}
 		
-		this(shared(Actor) supervisor = null) {
+		this(shared(Actor) supervisor = null, bool isActualInstance = false) {
+			import vibe.d : runTask;
 			auto director = getDirector();
 			enum type = typeText!T;
 
-			bool createRemotely = director.canCreateRemotely!T && director.preferablyCreateRemotely!T;
+			if (isActualInstance) {
+				localRef = cast(shared(T))supervisor;
+				identifier_ = supervisor.identifier_;
+			} else {
+				bool createRemotely = director.canCreateRemotely!T && director.preferablyCreateRemotely!T;
 
-			if (createRemotely) {
-				// hey director, you think you could you know find a node to create it upon?
-				string addr = director.preferableRemoteNodeCreation(type);
-				if (addr !is null) {
-					// then go send a request to create it?
-					string identifier = director.createClass(addr, type, supervisor.identifier_);
-					// lastly I'll store that info.
-					if (identifier !is null) {
-						identifier_ = identifier;
-						remoteAddressIdentifier = addr;
+				if (createRemotely) {
+					// hey director, you think you could you know find a node to create it upon?
+					string addr = director.preferableRemoteNodeCreation(type);
+					if (addr !is null) {
+						// then go send a request to create it?
+						string identifier = director.createClass(addr, type, supervisor.identifier_);
+						// lastly I'll store that info.
+						if (identifier !is null) {
+							identifier_ = identifier;
+							remoteAddressIdentifier = addr;
+							isLocalInstance_ = false;
+						} else {
+							// hey supervisor... we couldn't create this reference. What do you want to do now?
+						}
 					} else {
 						// hey supervisor... we couldn't create this reference. What do you want to do now?
 					}
-				} else {
-					// hey supervisor... we couldn't create this reference. What do you want to do now?
+				} else if (canLocalCreate!T) {
+					// well this is easy.
+					// register it with out director as our current instance.
+					localRef = new shared T(supervisor);
+					identifier_ = director.localActorCreate(typeText!T);
+					storeActor(localRef);
+
+					// new thread for on start. Yes its evil. But it'll work.
+					runTask({ (cast(T)localRef).onStart(); });
 				}
-			} else if (canLocalCreate!T) {
-				// well this is easy.
-				// register it with out director as our current instance.
-				localRef = new shared T(supervisor);
-				identifier_ = director.localActorCreate(typeText!T);
-				storeActor(localRef);
-				(cast(T)localRef).onStart();
 			}
 		}
 		

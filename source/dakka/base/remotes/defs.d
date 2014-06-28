@@ -6,6 +6,10 @@ import vibe.d : msecs, Task, send, sleep;
 
 private __gshared {
 	RemoteDirector director;
+
+	shared static this() {
+		director = new RemoteDirector();
+	}
 }
 
 void setDirector(T : RemoteDirector)() {
@@ -133,6 +137,9 @@ class RemoteDirector {
 
 	string localActorCreate(string type) {
 		import std.conv : to;
+		if (type !in localClasses)
+			localClasses[type] = [];
+
 		string id = type ~ to!string(utc0Time) ~ to!string(localClasses[type].length);
 		localClasses[type] ~= id;
 		return id;
@@ -152,22 +159,40 @@ class RemoteDirector {
 	 * 		Class instance identifier
 	 */
 	string receivedCreateClass(string addr, string uid, string identifier, string parent) {
+		import std.algorithm : canFind;
 		string instance = null;
 
 		// 	is parent not null?
-		//		is the parent a local class?
-		//  		create an ActorRef for it.
-		// 		else
-		//  		create a new one via actorOf (in some form)
+		shared(Actor) parentRef;
+		if (parent != "") {
+			bool localInstance = false;
+			string type;
+			foreach(type2, instances; localClasses) {
+				if (canFind(cast()instances, parent)) {
+					localInstance = true;
+					type = type2;
+					break;
+				}
+			}
+			//		is the parent a local class?
+			if (localInstance) {
+				parentRef = getInstance(parent).referenceOfActor;
+				// 		else
+			} else {
+				//  		create a new one via actorOf (in some form)
+				parentRef = new shared ActorRef!Actor(parent, addr);
+			}
+		}
 
 		// can we create the actor on this system?
-		// 		ask the registration system for actors to create it
-		// 		return its unique identifier		
-		// else
-		//      return null
+		if (canLocalCreate(identifier)) {
+			// 		ask the registration system for actors to create it
+			instance = createLocalActor(identifier).identifier;
 
-		// in new thread call onStart!
-		// also register it via localActorCreate
+			// else
+		} else {
+			//      return null
+		}
 
 		return instance;
 	}
@@ -255,7 +280,9 @@ void clientConnect(DakkaRemoteServer[] servers...) {
 
 void serverStart(DakkaServerSettings[] servers...) {
 	import dakka.base.remotes.server_handler;
+	import vibe.d : runTask;
+
 	foreach(server; servers) {
-		handleServerMessageServer(server);
+		runTask({handleServerMessageServer(server);});
 	}
 }

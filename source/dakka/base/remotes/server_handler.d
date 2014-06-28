@@ -5,7 +5,7 @@ import vibe.d;
 import std.string : join;
 
 void handleServerMessageServer(DakkaServerSettings settings) {
-	listenTCP(settings.port, (conn) {
+	TCPListener[] listensOn = listenTCP(settings.port, (conn) {
 		string addr = conn.remoteAddress.toString();
 		logInfo("Client connected %s", addr);
 
@@ -103,6 +103,8 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 
 		logInfo("Client disconnected %s", addr);
 	});
+
+	logInfo("Started server listening");
 }
 
 void capabilitiesMessage(TCPConnection conn) {

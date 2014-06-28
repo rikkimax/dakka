@@ -4,19 +4,32 @@ import dakka.base.registration.actors;
 import dakka.base.defs;
 import vibe.d;
 
-shared static this() {
+void main(string[] args) {
 	version(unittest){} else {
-		registerCapability("test");
-		registerCapability("testing budgies");
+		//registerCapability("test");
+		//registerCapability("testing budgies");
 
-		registerActor!MyActorA;
+		//registerActor!MyActorA;
 
-		auto aref = new shared ActorRef!MyActorA;
+		if (args.length == 2) {
+			setLogFile("client.txt", LogLevel.info);
+			auto rconfig = DakkaRemoteServer("localhost", ["127.0.0.1"], 1171);
+			clientConnect(rconfig);
+		} else {
+			setLogFile("server.txt", LogLevel.info);
 
-		auto sconfig = DakkaServerSettings(1172);
-		serverStart(sconfig);
-		auto rconfig = DakkaRemoteServer("localhost", ["127.0.0.1"], 1172);
-		clientConnect(rconfig);
+			runTask({
+				import std.process;
+				sleep(2.seconds);
+				execute([args[0], "something"]);
+			});
+
+			auto sconfig = DakkaServerSettings(1171);
+			serverStart(sconfig);
+		}
+
+		//auto aref = new shared ActorRef!MyActorA;
+		logInfo("Starting up main event loop.");
 		runEventLoop();
 	}
 }
