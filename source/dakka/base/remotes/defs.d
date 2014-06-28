@@ -101,12 +101,11 @@ class RemoteDirector {
 		import std.algorithm : canFind;
 		string[] required = capabilitiesRequired(identifier);
 		string[] addrs;
-		
+
 		foreach(addr, caps; nodeCapabilities) {
-			
 			bool good = true;
 			foreach(cap; required) {
-				if (!canFind(cast()caps, cap)) {
+				if (!canFind(cast(string[])caps, cap)) {
 					good = false;
 					break;
 				}
@@ -119,19 +118,10 @@ class RemoteDirector {
 		if (addrs is null)
 			return null;
 
+		// ugh load balancing?
+		// preferable vs not preferable?
 
-		// a crude form of load balancing
-
-		size_t less = size_t.max;
-		string addr2;
-
-		foreach(addr, values; remoteClassInstances) {
-			if (values.get(identifier, []).length < less) {
-				less = values.length;
-				addr2 = addr;
-			}
-		}
-		return addr2;
+		return addrs[0];
 	}
 
 
@@ -195,6 +185,10 @@ class RemoteDirector {
 		}
 
 		return instance;
+	}
+
+	void receivedEndClassCreate(string uid, string addr, string identifier, string parent) {
+		remoteClasses[uid] = cast(shared)RemoteClassIdentifier(addr, identifier, parent);
 	}
 
 	final {

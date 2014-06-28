@@ -151,13 +151,13 @@ class ActorRef(T : Actor) : T {
 			identifier_ = supervisor.identifier_;
 		} else {
 			bool createRemotely = director.canCreateRemotely!T && director.preferablyCreateRemotely!T;
-			
+
 			if (createRemotely) {
 				// hey director, you think you could you know find a node to create it upon?
 				string addr = director.preferableRemoteNodeCreation(type);
 				if (addr !is null) {
 					// then go send a request to create it?
-					string identifier = director.createClass(addr, type, supervisor.identifier_);
+					string identifier = director.createClass(addr, type, supervisor is null ? null : supervisor.identifier_);
 					// lastly I'll store that info.
 					if (identifier !is null) {
 						identifier_ = identifier;
@@ -165,9 +165,11 @@ class ActorRef(T : Actor) : T {
 						isLocalInstance_ = false;
 					} else {
 						// hey supervisor... we couldn't create this reference. What do you want to do now?
+						assert(0, "no identifier");
 					}
 				} else {
 					// hey supervisor... we couldn't create this reference. What do you want to do now?
+					assert(0, "no address");
 				}
 			} else {
 				// well this is easy.

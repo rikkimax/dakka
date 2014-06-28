@@ -13,9 +13,13 @@ void main(string[] args) {
 		if (args.length == 1 || (args.length == 2 && args[1] == "client")) {
 			auto rconfig = DakkaRemoteServer("localhost", ["127.0.0.1"], 11728);
 			clientConnect(rconfig);
-			auto aref = new ActorRef!MyActorA;
-			logInfo("id of actor created %s", aref.identifier);
-			aref.test("Hiii from the client");
+			runTask({
+				sleep(1.seconds);
+				logInfo("start of actor test");
+				auto aref = new ActorRef!MyActorA;
+				logInfo("id of actor created %s %s", aref.identifier, aref.isLocalInstance ? "is local" : "is not local");
+				//aref.test("Hiii from the client");
+			});
 		}
 		if (args.length == 1 || (args.length == 2 && args[1] == "server")) {
 			registerCapability("test");

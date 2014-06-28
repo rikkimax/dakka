@@ -83,6 +83,10 @@ void handleClientMessageServer(DakkaRemoteServer settings) {
 					if (received.substage == 0) {
 						handleRequestOfClassCreation(conn, director, received.stage3_actor_create);
 						logInfo("Server %s has asked us to create a %s with parent %s", addr, received.stage3_actor_create.classIdentifier, received.stage3_actor_create.parentInstanceIdentifier);
+					} else if (received.substage == 1) {
+						// TODO: how do we get the parent identifier, last arg?
+						director.receivedEndClassCreate(received.stage3_actor_verify.uid, addr, received.stage3_actor_verify.classInstanceIdentifier, null);
+						logInfo("Server %s has created an instance of class %s", addr, received.stage3_actor_verify.classInstanceIdentifier);
 					}
 				}
 
