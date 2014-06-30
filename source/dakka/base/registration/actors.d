@@ -10,17 +10,38 @@ __gshared private {
 	shared(Actor)[string] localInstances; // instance[instanceIdentifier]
 	string[][string] remoteInstances; // instanceIdentifier[][adder]
 	shared(Actor)delegate() [string] createLocalReferenceInstance;
+	shared(Actor)delegate() [string] createLocalReferenceInstanceNonRef;
+	shared(Actor)[string] singletonInstances; //instance[type]
 }
 
 void registerActor(T : Actor)() {
 	synchronized {
+		enum type = typeText!T;
+
 		foreach(UDA; __traits(getAttributes, T)) {
 			static if (__traits(compiles, {DakkaCapability c = UDA;})) {
-				capabilityClasses[typeText!T] ~= UDA.name;
+				capabilityClasses[type] ~= UDA.name;
 			}
 		}
-		classesInfo[typeText!T] = extractActorInfo!T;
-		createLocalReferenceInstance[typeText!T] = { return cast(shared)new ActorRef!T; };
+		classesInfo[type] = extractActorInfo!T;
+
+		createLocalReferenceInstance[type] = {
+			static if (isASingleton!T) {
+				if (type !in singletonInstances)
+					singletonInstances[type] = new T;
+				return cast(shared)new ActorRef!T(cast()singletonInstances[type], true);
+			}
+			return cast(shared)new ActorRef!T;
+		};
+
+		createLocalReferenceInstanceNonRef[type] = {
+			static if (isASingleton!T) {
+				if (type !in singletonInstances)
+					singletonInstances[type] = new T;
+				return cast(shared(T))singletonInstances[type];
+			}
+			return cast(shared)new T;
+		};
 	}
 }
 
@@ -118,6 +139,14 @@ Actor createLocalActor(string type) {
 		return cast()createLocalReferenceInstance[type]();
 	}
 }
+
+Actor createLocalActorNonRef(string type) {
+	synchronized {
+		assert(type in classesInfo, "Class " ~ type ~ " has not been registered.");
+		return cast()createLocalReferenceInstanceNonRef[type]();
+	}
+}
+
 
 /**
  * Dyanmic stuff for remotes

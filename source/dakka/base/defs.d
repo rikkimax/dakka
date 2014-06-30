@@ -131,7 +131,7 @@ class Actor {
 
 class ActorRef(T : Actor) : T {
 	import dakka.base.remotes.defs : getDirector;
-	import dakka.base.registration.actors : canLocalCreate, storeActor;
+	import dakka.base.registration.actors : canLocalCreate, storeActor, createLocalActorNonRef;
 
 	this(string identifier, string remoteAddress) {
 		identifier_ = identifier;
@@ -172,20 +172,22 @@ class ActorRef(T : Actor) : T {
 			} else {
 				// well this is easy.
 				// register it with out director as our current instance.
-				localRef = new T(supervisor);
-				identifier_ = director.localActorCreate(typeText!T);
-				localRef.identifier_ = identifier_;
-				storeActor(localRef);
-				
-				// new thread for on start. Yes its evil. But it'll work.
-				runTask({ (cast(T)localRef).onStart(); });
+				// also don't forget that could be a singleton. have it handled centurally.
+				localRef = cast(T)createLocalActorNonRef(type);
+				if (localRef.identifier_ is null) {
+					identifier_ = director.localActorCreate(typeText!T);
+					localRef.identifier_ = identifier_;
+					storeActor(localRef);
+
+					// new thread for on start. Yes its evil. But it'll work.
+					runTask({ (cast(T)localRef).onStart(); });
+				}
 			}
 		}
 	}
 
 	override void die(bool informSupervisor = true) {
 		import dakka.base.registration.actors : destoreActor;
-
 
 		auto director = getDirector();
 		enum type = typeText!T;
@@ -227,4 +229,16 @@ enum DakkaNodeType {
 
 struct DakkaCapability {
 	string name;
+}
+
+struct DakkaSingleton {}
+
+pure bool isASingleton(T : Actor)() {
+	foreach(uda; __traits(getAttributes, T)) {
+		static if (is(typeof(uda) == DakkaSingleton)) {
+			return true;
+		}
+	}
+
+	return false;
 }
