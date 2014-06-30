@@ -37,6 +37,7 @@ class RemoteDirector {
 		string[][string][string] remoteClassInstances; // ClassIdentifier[][ClassType][remoteAddressIdentifier]
 		string[][string] nodeCapabilities; //capability[][remoteAddressIdentifier]
 		string[][string] localClasses; // ClassInstanceIdentifier[][ClassIdentifier]
+		bool[string] addrLagCheckUse; // ShouldUse[remoteAddressIdentifier]
 	}
 
 	bool validAddressIdentifier(string adder) {return (adder in remoteConnections) !is null;}
@@ -46,15 +47,19 @@ class RemoteDirector {
 
 	void assign(string addr, Task task) {
 		remoteConnections[addr] = cast(shared)task;
+		addrLagCheckUse[addr] = true;
 	}
 
 	void unassign(string addr) {
 		remoteConnections.remove(addr);
 		nodeCapabilities.remove(addr);
+		addrLagCheckUse.remove(addr);
 	}
 
 	bool shouldContinueUsingNode(string addr, ulong outBy) {
-		return true;
+		bool ret = outBy < 10000;
+		addrLagCheckUse[addr] = ret;
+		return ret;
 	}
 
 	void receivedNodeCapabilities(string addr, string[] caps) {
@@ -110,9 +115,15 @@ class RemoteDirector {
 			return null;
 
 		// ugh load balancing?
-		// preferable vs not preferable?
 
-		return addrs[0];
+		// preferable vs not preferable?
+		foreach(addr; addrs) {
+			if (addrLagCheckUse.get(addr, false)) {
+				return addr;
+			}
+		}
+
+		return null;
 	}
 
 
