@@ -44,6 +44,7 @@ class RemoteDirector {
 	bool validateBuildInfo(string) {return true;}
 	bool validateClientCapabilities(string[]) {return true;}
 
+	string[] allRemoteAddresses() { return cast()remoteConnections.keys; }
 
 	void assign(string addr, Task task) {
 		remoteConnections[addr] = cast(shared)task;

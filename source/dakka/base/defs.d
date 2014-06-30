@@ -225,6 +225,79 @@ class ActorRef(T : Actor) : T {
 	mixin(getActorImplComs!T);
 }
 
+class AllActorRefs(T : Actor) if (isASingleton!T) {
+	private {
+		T localRef;
+		ActorRef!T[string] remoteRefs; // actor[remoteAddressIdentifier]
+	}
+
+	this() {
+		localRef = createLocalActorNonRef(typeText!T); // because singleton and local
+	}
+
+	// implement the methods overloading
+
+	void checkForUpdatesToAddresses() {
+		import std.algorithm : equal;
+
+		auto director = getDirector();
+
+		//   grab all of the current ones
+		string[] allRemoteAddresses = director.allRemoteAddresses();
+
+		// does remoteRefs.keys != addrs
+		if (equal(remoteRefs.keys, allRemoteAddresses)) {
+
+			//   remoteRefs = []
+			remoteRefs = [];
+
+			//   foreach addr in addrs
+			foreach(addr; allRemoteAddresses) {
+				//       remoteRefs[addr] = director.createClass(addr, typeText!T);
+				remoteRefs[add]r = director.createClass(addr, typeText!T);
+			}
+		}
+	}
+
+	/**
+	 * class T : Actor {
+	 * 		@DakkaCall(DakkaCallStrategy.Sequentially)
+	 * 		string test(int x) {
+	 * 			return to!string(x) ~ "something";
+	 * 		}
+	 * 
+	 * 		@DakkaCall(DakkaCallStrategy.Until, "1something")
+	 * 		string test2(int x) {
+	 * 			return to!string(x) ~ "something";
+	 * 		}
+	 * }
+	 *
+	 * string[] test(int x) {
+	 * 		checkForUpdatesToAddresses();
+	 *		string[] ret;
+	 *
+	 *		foreach(actor; remoteRefs.values) {
+	 *			ret ~= actor.test(x);
+	 *		}
+	 * 		return ret;
+	 * }
+	 * 
+	 * string[] test2(int x) {
+	 * 		checkForUpdatesToAddresses();
+	 *		string[] ret;
+	 *
+	 *		foreach(actor; remoteRefs.values) {
+	 *			string v = actor.test(x);
+	 *			ret ~= v;
+	 *			if (v == "1something") {
+	 *				break;
+	 *			}
+	 *		}
+	 * 		return ret;
+	 * }
+	 */
+}
+
 pure string typeText(T)() {
 	static if (__traits(compiles, {string mName = moduleName!T;})) {
 		return moduleName!T ~ "." ~ T.stringof;
