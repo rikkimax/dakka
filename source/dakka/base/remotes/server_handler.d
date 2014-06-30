@@ -10,8 +10,6 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 		logInfo("Client connected %s", addr);
 
 		auto director = getDirector();
-		auto validateClientCapabilities = director.validateClientCapabilities;
-		auto validateBuildInfo = director.validateBuildInfo;
 		listenForCommunications(conn, director);
 
 		ubyte stage;
@@ -30,7 +28,7 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 				}
 
 				if (received.substage == 0) {
-					if (validateBuildInfo !is null && !validateBuildInfo(received.stage0_init)) {
+					if (!director.validateBuildInfo(received.stage0_init)) {
 						conn.close();
 						break;
 					}
@@ -39,7 +37,7 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 					// the client capabilities are the last message we should receive in stage 0
 					stage = 1;
 
-					if (validateClientCapabilities !is null && !validateClientCapabilities(received.stage0_capabilities)) {
+					if (!director.validateClientCapabilities(received.stage0_capabilities)) {
 						// ehh is this client okay to work with us?
 
 						conn.close();

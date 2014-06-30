@@ -40,17 +40,8 @@ class RemoteDirector {
 	}
 
 	bool validAddressIdentifier(string adder) {return (adder in remoteConnections) !is null;}
-
-	this() {
-		validateBuildInfo = &buildInfoValidator;
-		validateClientCapabilities = &clientCapabilitiesValidator;
-	}
-
-	bool delegate(string) validateBuildInfo;
-	bool delegate(string[]) validateClientCapabilities;
-
-	bool buildInfoValidator(string) {return true;}
-	bool clientCapabilitiesValidator(string[]) {return true;}
+	bool validateBuildInfo(string) {return true;}
+	bool validateClientCapabilities(string[]) {return true;}
 
 
 	void assign(string addr, Task task) {
