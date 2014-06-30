@@ -20,7 +20,17 @@ pure string generateFuncLocalHandler(T : Actor, string m)() {
 	} else {
 		// with a void return type, we want to push this into another thread. Asynchronous because we don't have a return type. No point blocking is there?
 		ret ~= "                runTask({\n";
-		ret ~= "                    localRef." ~ m ~ "(" ~ generateFuncCall!(T, m) ~ ");\n";
+		ret ~= "                    try {\n";
+		ret ~= "                        localRef." ~ m ~ "(" ~ generateFuncCall!(T, m) ~ ");\n";
+		ret ~= "                    } catch(Exception e) {\n";
+		ret ~= "                        if(supervisor !is null) {\n";
+		ret ~= "                            if (supervisor.isLocalInstance || (!supervisor.isLocalInstance && getDirector().validAddressIdentifier((cast(ActorRef!(Actor))supervisor).remoteAddressIdentifier))) {\n";
+		ret ~= "                                (cast()supervisor).onChildError(this, e.toString());\n";
+		ret ~= "                            } else {\n";
+		ret ~= "                                die();\n";
+		ret ~= "                            }\n";
+		ret ~= "                        }\n";
+		ret ~= "                    }\n";
 		ret ~= "                });\n";
 	}
 	
