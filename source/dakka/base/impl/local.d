@@ -8,7 +8,7 @@ pure string generateFuncLocalHandler(T : Actor, string m)() {
 
 	ret ~= "                if(supervisor !is null && !isAlive_) {\n";
 	ret ~= "                    if ((supervisor.isLocalInstance && supervisor.isAlive_ && !supervisor.isDying_) || (!supervisor.isLocalInstance && getDirector().validAddressIdentifier((cast(ActorRef!(Actor))supervisor).remoteAddressIdentifier))) {\n";
-	ret ~= "                        (cast()supervisor).onChildError(typeText!T, identifier, \"Node instance is on a remote server. But it has been disconnected.\");\n";
+	ret ~= "                        (cast()supervisor).onChildError(this, \"Node instance is on a remote server. But it has been disconnected.\");\n";
 	ret ~= "                    } else {\n";
 	ret ~= "                        die();\n";
 	ret ~= "                    }\n";

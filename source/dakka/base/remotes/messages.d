@@ -9,19 +9,24 @@ struct DakkaMessage {
 	union {
 		string stage0_init;
 		string[] stage0_capabilities;
-		
+
+
 		ulong stage1_client_sync;
 		ServerLagReply stage1_server_sync;
-		
+
+
 		string[] stage2_actors;
 		string stage2_actor_request;
 		ActorInformation stage2_actor;
+
 
 		ActorClassCreation stage3_actor_create;
 		ActorClassCreationVerify stage3_actor_verify;
 
 		string stage3_actor_destroy;
 		ActorClassDestroyVerify stage3_actor_destroy_verify;
+
+		ActorError stage3_actor_error;
 	}
 	
 	void receive(TCPConnection stream) {
@@ -150,6 +155,16 @@ struct DakkaMessage {
 				ubyte[1] success;
 				stream.read(success);
 				stage3_actor_destroy_verify.success = cast(bool)success[0];
+			} else if (substage == 4 || substage == 5) {
+
+			} else if (substage == 6) {
+				RawConvTypes!ulong classInstanceIdentifierLength;
+				stream.read(classInstanceIdentifierLength.bytes);
+				stage3_actor_error.classInstanceIdentifier = cast(string)stream.readSome(cast(size_t)classInstanceIdentifierLength.value);
+
+				RawConvTypes!ulong messageLength;
+				stream.read(messageLength.bytes);
+				stage3_actor_error.message = cast(string)stream.readSome(cast(size_t)messageLength.value);
 			}
 		}
 	}
@@ -262,6 +277,18 @@ struct DakkaMessage {
 
 				stream.write(cast(ubyte[ulong.sizeof])RawConvTypes!ulong(dataOut.length));
 				stream.write(dataOut);
+			} else if (substage == 4 || substage == 5) {
+				
+			} else if (substage == 6) {
+				ubyte[] dataOut;
+
+				dataOut ~= cast(ubyte[ulong.sizeof])RawConvTypes!ulong(stage3_actor_error.classInstanceIdentifier.length);
+				dataOut ~= cast(ubyte[])stage3_actor_error.classInstanceIdentifier;
+				dataOut ~= cast(ubyte[ulong.sizeof])RawConvTypes!ulong(stage3_actor_error.message.length);
+				dataOut ~= cast(ubyte[])stage3_actor_error.message;
+
+				stream.write(cast(ubyte[ulong.sizeof])RawConvTypes!ulong(dataOut.length));
+				stream.write(dataOut);
 			}
 		}
 
@@ -359,11 +386,15 @@ struct ActorClassCreationVerify {
 	bool success;
 }
 
-
-
 struct ActorClassDestroyVerify {
 	string classInstanceIdentifier;
 	bool success;
+}
+
+struct ActorError {
+	string classInstanceIdentifier;
+	string errorClassInstanceIdentifier;
+	string message;
 }
 
 /**
@@ -466,6 +497,18 @@ void askToKill(TCPConnection conn, string identifier, bool success) {
 	sending.send(conn);
 }
 
+void classErroredReport(TCPConnection conn, string identifier, string identifier2, string message) {
+	DakkaMessage sending;
+	
+	sending.stage = 3;
+	sending.substage = 6;
+	sending.stage3_actor_error.classInstanceIdentifier = identifier;
+	sending.stage3_actor_error.errorClassInstanceIdentifier = identifier2;
+	sending.stage3_actor_error.message = message;
+	
+	sending.send(conn);
+}
+
 
 /**
  * Communication to director
@@ -475,7 +518,8 @@ enum DirectorCommunicationActions {
 	AreYouStillThere, // not actually used. But its better then it dieing. Should a default instance be sent errornously.
 	GoDie,
 	CreateClass,
-	DeleteClass
+	DeleteClass,
+	ClassError
 }
 
 void listenForCommunications(TCPConnection conn, RemoteDirector director) {
@@ -493,10 +537,13 @@ void listenForCommunications(TCPConnection conn, RemoteDirector director) {
 						break;
 				}
 			},
-			(DirectorCommunicationActions action, string uid, string identifier, string parent) {
+			(DirectorCommunicationActions action, string str1, string str2, string str3) {
 				switch(action) {
 					case DirectorCommunicationActions.CreateClass:
-						askForClassCreation(conn, uid, identifier, parent);
+						askForClassCreation(conn, str1, str2, str3);
+						break;
+					case DirectorCommunicationActions.ClassError:
+						classErroredReport(conn, str1, str2, str3);
 						break;
 					default:
 						break;
@@ -511,6 +558,7 @@ void listenForCommunications(TCPConnection conn, RemoteDirector director) {
 						break;
 				}
 			});
+
 			sleep(25.msecs);
 		}
 		

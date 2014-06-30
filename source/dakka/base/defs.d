@@ -126,7 +126,7 @@ class Actor {
 
 	void onStart() {}
 	void onStop() {}
-	void onChildError(string classIdentifier, string classInstanceIdentifier, string message) {}
+	void onChildError(Actor actor, string message) {}
 }
 
 class ActorRef(T : Actor) : T {
@@ -186,28 +186,39 @@ class ActorRef(T : Actor) : T {
 		}
 	}
 
-	override void die(bool informSupervisor = true) {
-		import dakka.base.registration.actors : destoreActor;
-
-		auto director = getDirector();
-		enum type = typeText!T;
-
-		if (isLocalInstance_ && !isDying_ && isAlive_) {
-			super.die(informSupervisor);
-
-			// no point in it being in destructor.
-			// As it is also stored within the actor registration
-			//  (so won't have that called till the reference in the actor registration goes bye bye).
-			director.localActorDies(type, identifier);
-			destoreActor(identifier_);
-		} else {
-			director.killClass(remoteAddressIdentifier, type, identifier);
-		}
-	}
-
 	private {
 		T localRef;
 		string remoteAddressIdentifier;
+	}
+
+	override {
+		void die(bool informSupervisor = true) {
+			import dakka.base.registration.actors : destoreActor;
+			
+			auto director = getDirector();
+			enum type = typeText!T;
+			
+			if (isLocalInstance_ && !isDying_ && isAlive_) {
+				super.die(informSupervisor);
+				
+				// no point in it being in destructor.
+				// As it is also stored within the actor registration
+				//  (so won't have that called till the reference in the actor registration goes bye bye).
+				director.localActorDies(type, identifier);
+				destoreActor(identifier_);
+			} else {
+				director.killClass(remoteAddressIdentifier, type, identifier);
+			}
+		}
+
+		void onChildError(Actor actor, string message) {
+			if (isLocalInstance_) {
+				super.onChildError(actor, message);
+			} else {
+				// assuming the remote node will know about this actor. After all, it contains the supervisor for it!
+				getDirector().actorError(remoteAddressIdentifier, identifier_, (actor !is null ? actor.identifier_ : ""), message);
+			}
+		}
 	}
 
 	pragma(msg, getActorImplComs!T);

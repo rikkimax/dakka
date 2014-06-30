@@ -111,6 +111,10 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 				} else if (received.substage == 3) {
 					// requested to delete an actor instance response
 					logInfo("Client %s has replied that it has %s killed %s", addr, received.stage3_actor_destroy_verify.success ? "been" : "not been", received.stage3_actor_destroy_verify.classInstanceIdentifier);
+				} else if (received.substage == 4 || received.substage == 5) {
+
+				} else if (received.substage == 6) {
+					director.receivedClassErrored(received.stage3_actor_error.classInstanceIdentifier, received.stage3_actor_error.errorClassInstanceIdentifier, received.stage3_actor_error.message);
 				}
 			}
 

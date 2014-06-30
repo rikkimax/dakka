@@ -195,6 +195,10 @@ class RemoteDirector {
 		return true;
 	}
 
+	void receivedClassErrored(string identifier, string identifier2, string message) {
+		getInstance(identifier).onChildError(identifier2 != "" ? getInstance(identifier2) : null, message);
+	}
+
 	final {
 		void killConnection(string addr) {
 			if (addr in remoteConnections)
@@ -246,6 +250,10 @@ class RemoteDirector {
 
 			remoteClassInstances[addr][type] = cast(shared)newIds;
 			remoteConnections[addr].send(DCA.DeleteClass, identifier);
+		}
+
+		void actorError(string addr, string identifier, string identifier2, string message) {
+			remoteConnections[addr].send(DCA.ClassError, identifier, identifier2, message);
 		}
 
 		void callClassNonBlocking(string identifier, ubyte[] data){}//TODO

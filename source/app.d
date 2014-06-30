@@ -17,6 +17,7 @@ void main(string[] args) {
 				sleep(1.seconds);
 				auto aref = new ActorRef!MyActorA;
 				logInfo("id of actor created %s %s", aref.identifier, aref.isLocalInstance ? "is local" : "is not local");
+				aref.onChildError(null, "okay hi there!");
 				aref.test("Hiii from the client");
 				aref.die();
 			});
@@ -49,5 +50,10 @@ class MyActorA : Actor {
 	override void onStop() {
 		import ofile = std.file;
 		ofile.append("afile.txt", "I'm dying!\n");
+	}
+
+	override void onChildError(Actor actor, string message) {
+		import ofile = std.file;
+		ofile.append("afile.txt", "I child errored! " ~ (actor is null ? "and its null" : actor.identifier) ~ "\n");
 	}
 }
