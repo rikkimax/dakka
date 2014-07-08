@@ -38,6 +38,7 @@ class RemoteDirector {
 		string[][string] nodeCapabilities; //capability[][remoteAddressIdentifier]
 		string[][string] localClasses; // ClassInstanceIdentifier[][ClassIdentifier]
 		bool[string] addrLagCheckUse; // ShouldUse[remoteAddressIdentifier]
+		ubyte[][string] retData; //data[UniqueAccessIdentifier]
 	}
 
 	bool validAddressIdentifier(string adder) {return (adder in remoteConnections) !is null;}
@@ -119,7 +120,7 @@ class RemoteDirector {
 
 		// preferable vs not preferable?
 		foreach(addr; addrs) {
-			if (addrLagCheckUse.get(addr, false)) {
+			if (addrLagCheckUse.get(addr, true)) {
 				return addr;
 			}
 		}
@@ -197,70 +198,97 @@ class RemoteDirector {
 		getInstance(identifier).die();
 		return true;
 	}
+	
+	void receivedBlockingMethodCall(string uid, string addr, string identfier, string method, ubyte[] data){}//TODO
+	ubyte[] receivedNonBlockingMethodCall(string uid, string addr, string identfier, string method, ubyte[] data){return null;}//TODO
+	
+	void receivedClassReturn(string uid, ubyte[] data) {
+		retData[uid] = cast(shared)data;
+	}
 
 	void receivedClassErrored(string identifier, string identifier2, string message) {
 		getInstance(identifier).onChildError(identifier2 != "" ? getInstance(identifier2) : null, message);
 	}
 
-	final {
-		void killConnection(string addr) {
-			if (addr in remoteConnections)
-				if ((cast()remoteConnections[addr]).running)
-					remoteConnections[addr].send(DCA.GoDie);
-		}
+	void killConnection(string addr) {
+		if (addr in remoteConnections)
+			if ((cast()remoteConnections[addr]).running)
+				remoteConnections[addr].send(DCA.GoDie);
+	}
 
-		@property string[] connections() {
-			return remoteConnections.keys;
-		}
+	@property string[] connections() {
+		return remoteConnections.keys;
+	}
 
-		/**
-		 * Blocking request to remote server to create a class
-		 * 
-		 * Returns:
-		 * 		Class instance identifier
-		 * 		Or null upon the connection ending.
-		 */
-		string createClass(string addr, string identifier, string parent) {
-			import std.conv : to;
+	/**
+	 * Blocking request to remote server to create a class
+	 * 
+	 * Returns:
+	 * 		Class instance identifier
+	 * 		Or null upon the connection ending.
+	 */
+	string createClass(string addr, string identifier, string parent) {
+		import std.conv : to;
 
-			if (addr in remoteConnections) {
-				if ((cast()remoteConnections[addr]).running) {
-					string uid = identifier ~ parent ~ to!string(utc0Time());
+		if (addr in remoteConnections) {
+			if ((cast()remoteConnections[addr]).running) {
+				string uid = identifier ~ parent ~ to!string(utc0Time());
 
-					remoteConnections[addr].send(DCA.CreateClass, uid, identifier, parent);
+				remoteConnections[addr].send(DCA.CreateClass, uid, identifier, parent);
 
-					// TODO: get the class instance from this, return it.
-					while(uid !in remoteClasses && (cast()remoteConnections[addr]).running)
-					{sleep(25.msecs());}
+				// TODO: get the class instance from this, return it.
+				while(uid !in remoteClasses && (cast()remoteConnections[addr]).running)
+				{sleep(25.msecs());}
 
-					if (uid in remoteClasses) {
-						remoteClassInstances[addr][identifier] ~= remoteClasses[uid].identifier;
-						return remoteClasses[uid].identifier;
-					}
+				if (uid in remoteClasses) {
+					remoteClassInstances[addr][identifier] ~= remoteClasses[uid].identifier;
+					return remoteClasses[uid].identifier;
 				}
 			}
-			return null;
+		}
+		return null;
+	}
+
+	void killClass(string addr, string type, string identifier) {
+		import std.algorithm : filter;
+		// TODO: something
+		string[] newIds;
+		foreach(v; remoteClassInstances[addr][type]) {
+			if (v != identifier)
+				newIds ~= v;
 		}
 
-		void killClass(string addr, string type, string identifier) {
-			import std.algorithm : filter;
-			// TODO: something
-			string[] newIds;
-			foreach(v; remoteClassInstances[addr][type]) {
-				if (v != identifier)
-					newIds ~= v;
-			}
+		remoteClassInstances[addr][type] = cast(shared)newIds;
+		remoteConnections[addr].send(DCA.DeleteClass, identifier);
+	}
 
-			remoteClassInstances[addr][type] = cast(shared)newIds;
-			remoteConnections[addr].send(DCA.DeleteClass, identifier);
-		}
+	void actorError(string addr, string identifier, string identifier2, string message) {
+		remoteConnections[addr].send(DCA.ClassError, identifier, identifier2, message);
+	}
 
-		void actorError(string addr, string identifier, string identifier2, string message) {
-			remoteConnections[addr].send(DCA.ClassError, identifier, identifier2, message);
-		}
+	void callClassNonBlocking(string addr, string identifier, string methodName, ubyte[] data) {
+		import std.conv : to;
+		
+		string uid = identifier ~ methodName ~ to!string(utc0Time());
 
-		void callClassNonBlocking(string identifier, ubyte[] data){}//TODO
-		ubyte[] callClassBlocking(string identifier, ubyte[] data){return null;}//TODO
+		remoteConnections[addr].send(DCA.ClassCall, uid, identifier, methodName, cast(shared)data, false);
+	}
+	
+	ubyte[] callClassBlocking(string addr, string identifier, string methodName, ubyte[] data){
+		import std.conv : to;
+		
+		string uid = identifier ~ methodName ~ to!string(utc0Time());
+
+		remoteConnections[addr].send(DCA.ClassCall, uid, identifier, methodName, cast(shared)data, true);
+		
+		while(uid !in retData && (cast()remoteConnections[addr]).running)
+				{sleep(25.msecs());}
+				
+		ubyte[] ret = cast(ubyte[])retData[uid];
+		
+		retData.remove(uid);
+			
+		return ret;
 	}
 }
 

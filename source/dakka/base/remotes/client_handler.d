@@ -95,6 +95,18 @@ void handleClientMessageServer(DakkaRemoteServer settings) {
 					} else if (received.substage == 3) {
 						// requested to delete an actor instance response
 						logInfo("Server %s has replied that it has %s killed %s", addr, received.stage3_actor_destroy_verify.success ? "been" : "not been", received.stage3_actor_destroy_verify.classInstanceIdentifier);
+					} else if (received.substage == 4) {
+						if (received.stage3_method_call.expectsReturnValue)
+							director.receivedBlockingMethodCall(received.stage3_method_call.uid, addr, received.stage3_method_call.classInstanceIdentifier, received.stage3_method_call.methodName, received.stage3_method_call.data);
+						else {
+							ubyte[] ret = director.receivedNonBlockingMethodCall(received.stage3_method_call.uid, addr, received.stage3_method_call.classInstanceIdentifier, received.stage3_method_call.methodName, received.stage3_method_call.data);
+							classCallMethodReturn(conn, received.stage3_method_call.uid, ret);
+						}
+						logInfo("Server %s has asked us to call method %s on %s", addr, received.stage3_method_call.methodName, received.stage3_method_call.classInstanceIdentifier);
+					} else if (received.substage == 5) {
+						director.receivedClassReturn(received.stage3_method_return.uid, received.stage3_method_return.data);
+					} else if (received.substage == 6) {
+						director.receivedClassErrored(received.stage3_actor_error.classInstanceIdentifier, received.stage3_actor_error.errorClassInstanceIdentifier, received.stage3_actor_error.message);
 					}
 				}
 

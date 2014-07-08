@@ -22,13 +22,13 @@ pure string generateFuncRemoteHandler(T : Actor, string m, T t = new T())() {
 	
 	static if (hasReturnValue!(T, m)) {
 		// wait for output from central.d -> reconstruct args return
-		ret ~= "            ubyte[] odata = getDirector().callClassBlocking(identifier, cast(ubyte[])cereal.bytes);\n";
+		ret ~= "            ubyte[] odata = getDirector().callClassBlocking(remoteAddressIdentifier, identifier, \"" ~ m ~ "\", cast(ubyte[])cereal.bytes);\n";
 		ret ~= "            auto decereal = Decerealiser(odata);\n";
 		// blocking request.
 		ret ~= "            return cereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
 	} else {
 		// non blocking request
-		ret ~= "            getDirector().callClassNonBlocking(identifier, cast(ubyte[])cereal.bytes);\n";
+		ret ~= "            getDirector().callClassNonBlocking(remoteAddressIdentifier, identifier, \"" ~ m ~ "\", cast(ubyte[])cereal.bytes);\n";
 	}
 
 	return ret;

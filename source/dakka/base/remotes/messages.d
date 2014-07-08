@@ -26,6 +26,9 @@ struct DakkaMessage {
 		string stage3_actor_destroy;
 		ActorClassDestroyVerify stage3_actor_destroy_verify;
 
+		ActorMethodCall stage3_method_call;
+		ActorMethodReturn stage3_method_return;
+
 		ActorError stage3_actor_error;
 	}
 	
@@ -155,8 +158,34 @@ struct DakkaMessage {
 				ubyte[1] success;
 				stream.read(success);
 				stage3_actor_destroy_verify.success = cast(bool)success[0];
-			} else if (substage == 4 || substage == 5) {
-
+			} else if (substage == 4) {
+				RawConvTypes!ulong uidLength;
+				stream.read(uidLength.bytes);
+				stage3_method_call.uid = cast(string)stream.readSome(cast(size_t)uidLength.value);
+				
+				RawConvTypes!ulong classInstanceIdentifierLength;
+				stream.read(classInstanceIdentifierLength.bytes);
+				stage3_method_call.classInstanceIdentifier = cast(string)stream.readSome(cast(size_t)classInstanceIdentifierLength.value);
+				
+				RawConvTypes!ulong methodNameLength;
+				stream.read(methodNameLength.bytes);
+				stage3_method_call.methodName = cast(string)stream.readSome(cast(size_t)methodNameLength.value);
+				
+				RawConvTypes!ulong dataLength;
+				stream.read(dataLength.bytes);
+				stage3_method_call.data = stream.readSome(cast(size_t)dataLength.value);
+				
+				ubyte[1] expectsReturnValue;
+				stream.read(expectsReturnValue);
+				stage3_method_call.expectsReturnValue = cast(bool)expectsReturnValue[0];
+			} else if (substage == 5) {
+				RawConvTypes!ulong uidLength;
+				stream.read(uidLength.bytes);
+				stage3_method_return.uid = cast(string)stream.readSome(cast(size_t)uidLength.value);
+				
+				RawConvTypes!ulong dataLength;
+				stream.read(dataLength.bytes);
+				stage3_method_return.data = stream.readSome(cast(size_t)dataLength.value);
 			} else if (substage == 6) {
 				RawConvTypes!ulong classInstanceIdentifierLength;
 				stream.read(classInstanceIdentifierLength.bytes);
@@ -277,8 +306,35 @@ struct DakkaMessage {
 
 				stream.write(cast(ubyte[ulong.sizeof])RawConvTypes!ulong(dataOut.length));
 				stream.write(dataOut);
-			} else if (substage == 4 || substage == 5) {
+			} else if (substage == 4) {
+				ubyte[] dataOut;
 				
+				dataOut ~= cast(ubyte[ulong.sizeof])RawConvTypes!ulong(stage3_method_call.uid.length);
+				dataOut ~= cast(ubyte[])stage3_method_call.uid;
+				
+				dataOut ~= cast(ubyte[ulong.sizeof])RawConvTypes!ulong(stage3_method_call.classInstanceIdentifier.length);
+				dataOut ~= cast(ubyte[])stage3_method_call.classInstanceIdentifier;
+				
+				dataOut ~= cast(ubyte[ulong.sizeof])RawConvTypes!ulong(stage3_method_call.methodName.length);
+				dataOut ~= cast(ubyte[])stage3_method_call.methodName;
+				
+				dataOut ~= cast(ubyte[ulong.sizeof])RawConvTypes!ulong(stage3_method_call.data.length);
+				dataOut ~= stage3_method_call.data;
+				dataOut ~= cast(ubyte)stage3_method_call.expectsReturnValue;
+				
+				stream.write(cast(ubyte[ulong.sizeof])RawConvTypes!ulong(dataOut.length));
+				stream.write(dataOut);
+			} else if (substage == 5) {
+				ubyte[] dataOut;
+				
+				dataOut ~= cast(ubyte[ulong.sizeof])RawConvTypes!ulong(stage3_method_return.uid.length);
+				dataOut ~= cast(ubyte[])stage3_method_return.uid;
+				
+				dataOut ~= cast(ubyte[ulong.sizeof])RawConvTypes!ulong(stage3_method_return.data.length);
+				dataOut ~= stage3_method_return.data;
+								
+				stream.write(cast(ubyte[ulong.sizeof])RawConvTypes!ulong(dataOut.length));
+				stream.write(dataOut);
 			} else if (substage == 6) {
 				ubyte[] dataOut;
 
@@ -391,6 +447,19 @@ struct ActorClassDestroyVerify {
 	bool success;
 }
 
+struct ActorMethodCall {
+	string uid;
+	string classInstanceIdentifier;
+	string methodName;
+	ubyte[] data;
+	bool expectsReturnValue;
+}
+
+struct ActorMethodReturn {
+	string uid;
+	ubyte[] data;
+}
+
 struct ActorError {
 	string classInstanceIdentifier;
 	string errorClassInstanceIdentifier;
@@ -497,6 +566,33 @@ void askToKill(TCPConnection conn, string identifier, bool success) {
 	sending.send(conn);
 }
 
+void classCallMethod(TCPConnection conn, string uid, string classInstanceIdentifier, string methodName, ubyte[] data, bool expects) {
+	DakkaMessage sending;
+	
+	sending.stage = 3;
+	sending.substage = 4;
+	
+	sending.stage3_method_call.uid = uid;
+	sending.stage3_method_call.classInstanceIdentifier = classInstanceIdentifier;
+	sending.stage3_method_call.methodName = methodName;
+	sending.stage3_method_call.data = data;
+	sending.stage3_method_call.expectsReturnValue = expects;
+	
+	sending.send(conn);
+}
+
+void classCallMethodReturn(TCPConnection conn, string uid, ubyte[] data) {
+	DakkaMessage sending;
+	
+	sending.stage = 3;
+	sending.substage = 5;
+	
+	sending.stage3_method_return.uid = uid;
+	sending.stage3_method_return.data = data;
+	
+	sending.send(conn);
+}
+
 void classErroredReport(TCPConnection conn, string identifier, string identifier2, string message) {
 	DakkaMessage sending;
 	
@@ -519,6 +615,7 @@ enum DirectorCommunicationActions {
 	GoDie,
 	CreateClass,
 	DeleteClass,
+	ClassCall,
 	ClassError
 }
 
@@ -553,6 +650,15 @@ void listenForCommunications(TCPConnection conn, RemoteDirector director) {
 				switch(action) {
 					case DirectorCommunicationActions.DeleteClass:
 						askForClassDeletion(conn, identifier);
+						break;
+					default:
+						break;
+				}
+			},
+			(DirectorCommunicationActions action, string uid, string cid, string mid, ubyte[] data, bool expects) {
+				switch(action) {
+					case DirectorCommunicationActions.ClassCall:
+						classCallMethod(conn, uid, cid, mid, data, expects);
 						break;
 					default:
 						break;
