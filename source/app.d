@@ -10,6 +10,7 @@ void main(string[] args) {
 
 		registerActor!MyActorA;
 		registerActor!MyActorB;
+		registerActor!TestStrategies;
 
 		if (args.length == 1 || (args.length == 2 && args[1] == "client")) {
 			registerCapability("test2");
@@ -24,6 +25,9 @@ void main(string[] args) {
 				//assert(aref.add(1, 2) == 3);
 				aref.test2(new ActorRef!MyActorB);
 				aref.die();
+
+				auto tsref = new AllActorRefs!TestStrategies;
+				assert(tsref.test(8) == ["8something", "8something"]);
 			});
 		}
 		if (args.length == 1 || (args.length == 2 && args[1] == "server")) {
@@ -79,5 +83,18 @@ class MyActorB : Actor {
 	void hello() {
 		import ofile = std.file;
 		ofile.write("afile2.txt", "Saying hello!\n");
+	}
+}
+
+@DakkaSingleton
+class TestStrategies : Actor {
+	@DakkaCall(DakkaCallStrategy.Sequentially)
+	string test(int x) {
+		return to!string(x) ~ "something";
+	}
+
+	@DakkaCall(DakkaCallStrategy.Until, "1something")
+	string test2(int x) {
+		return to!string(x) ~ "something";
 	}
 }

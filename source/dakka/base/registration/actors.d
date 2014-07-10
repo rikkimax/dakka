@@ -11,7 +11,6 @@ __gshared private {
 	string[][string] remoteInstances; // instanceIdentifier[][adder]
 	shared(Actor)delegate() [string] createLocalReferenceInstance;
 	shared(Actor)delegate() [string] createLocalReferenceInstanceNonRef;
-	shared(Actor)[string] singletonInstances; //instance[type]
 	ubyte[]delegate(string, ubyte[], string=null)[string] localCallInstance;
 }
 
@@ -19,6 +18,7 @@ void registerActor(T : Actor)() {
 	synchronized {
 		enum type = typeText!T;
 
+		capabilityClasses[type] = [];
 		foreach(UDA; __traits(getAttributes, T)) {
 			static if (__traits(compiles, {DakkaCapability c = UDA;})) {
 				capabilityClasses[type] ~= UDA.name;
@@ -28,20 +28,20 @@ void registerActor(T : Actor)() {
 
 		createLocalReferenceInstance[type] = {
 			static if (isASingleton!T) {
-				if (type !in singletonInstances)
-					singletonInstances[type] = new T;
-				return cast(shared)new ActorRef!T(cast()singletonInstances[type], true);
-			}
-			return cast(shared)new ActorRef!T;
+				if (type !in localInstances)
+					localInstances[type] = cast(shared)new ActorRef!T;
+				return cast(shared)localInstances[type];
+			} else
+				return cast(shared)new ActorRef!T;
 		};
 
 		createLocalReferenceInstanceNonRef[type] = {
 			static if (isASingleton!T) {
-				if (type !in singletonInstances)
-					singletonInstances[type] = new T;
-				return cast(shared(T))singletonInstances[type];
-			}
-			return cast(shared)new T;
+				if (type !in localInstances)
+					localInstances[type] = cast(shared)new T;
+				return cast(shared(T))localInstances[type];
+			} else
+				return cast(shared)new T;
 		};
 	}
 }

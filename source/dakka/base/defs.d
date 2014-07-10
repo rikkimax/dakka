@@ -1,6 +1,5 @@
 ﻿module dakka.base.defs;
 import dakka.base.impl.defs;
-//import dakka.base.central;
 
 private {
 	static if (__traits(compiles, import("BuildIdentifier.txt"))) {
@@ -223,18 +222,22 @@ class ActorRef(T : Actor) : T {
 		}
 	}
 
-	pragma(msg, getActorImplComs!T);
 	mixin(getActorImplComs!T);
 }
 
 class AllActorRefs(T : Actor) if (isASingleton!T) {
+	import dakka.base.impl.wrap;
+	import dakka.base.registration.actors : createLocalActorNonRef;
+	import dakka.base.remotes.defs : getDirector;
+	import cerealed.decerealizer;
+
 	private {
 		T localRef;
 		ActorRef!T[string] remoteRefs; // actor[remoteAddressIdentifier]
 	}
 
 	this() {
-		localRef = createLocalActorNonRef(typeText!T); // because singleton and local
+		localRef = cast(T)createLocalActorNonRef(typeText!T); // because singleton and local
 	}
 
 	// implement the methods overloading
@@ -248,15 +251,15 @@ class AllActorRefs(T : Actor) if (isASingleton!T) {
 		string[] allRemoteAddresses = director.allRemoteAddresses();
 
 		// does remoteRefs.keys != addrs
-		if (equal(remoteRefs.keys, allRemoteAddresses)) {
+		if (!equal(remoteRefs.keys, allRemoteAddresses)) {
 
 			//   remoteRefs = []
-			remoteRefs = [];
+			remoteRefs = remoteRefs.init;
 
 			//   foreach addr in addrs
 			foreach(addr; allRemoteAddresses) {
 				//       remoteRefs[addr] = director.createClass(addr, typeText!T);
-				remoteRefs[add]r = director.createClass(addr, typeText!T);
+				remoteRefs[addr] = new ActorRef!T(director.createClass(addr, typeText!T, null), addr);
 			}
 		}
 	}
@@ -268,7 +271,7 @@ class AllActorRefs(T : Actor) if (isASingleton!T) {
 	 * 			return to!string(x) ~ "something";
 	 * 		}
 	 * 
-	 * 		@DakkaCall(DakkaCallStrategy.Until, "1something")
+	 * 		@DakkaCall!("1something")(DakkaCallStrategy.Until)
 	 * 		string test2(int x) {
 	 * 			return to!string(x) ~ "something";
 	 * 		}
@@ -298,6 +301,9 @@ class AllActorRefs(T : Actor) if (isASingleton!T) {
 	 * 		return ret;
 	 * }
 	 */
+
+	pragma(msg, getActorWrapImpl!T);
+	mixin(getActorWrapImpl!T);
 }
 
 pure string typeText(T)() {
@@ -322,10 +328,32 @@ struct DakkaSingleton {}
 
 pure bool isASingleton(T : Actor)() {
 	foreach(uda; __traits(getAttributes, T)) {
-		static if (is(typeof(uda) == DakkaSingleton)) {
+		static if (is(uda == DakkaSingleton)) {
 			return true;
 		}
 	}
 
 	return false;
+}
+
+enum DakkaCallStrategy {
+	Sequentially,
+	Until
+}
+
+struct DakkaCall_ {
+	DakkaCallStrategy strategy;
+	ubyte[] data;
+}
+
+pure DakkaCall_ DakkaCall(DakkaCallStrategy strategy) {
+	return DakkaCall_(strategy);
+}
+
+pure DakkaCall_ DakkaCall(T)(DakkaCallStrategy strategy, T t) {
+	import cerealed.cerealizer;
+	Cerealizer c;
+	c ~= t;
+
+	return DakkaCall_(strategy, cast(ubyte[])c.bytes);
 }

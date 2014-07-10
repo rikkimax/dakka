@@ -20,11 +20,14 @@ pure string getActorImplComs(T : Actor, T t = new T())() {
 	return ret;
 }
 
-pure string funcDeclText(T : Actor, string m, T t = new T())() {
+pure string funcDeclText(T : Actor, string m, T t = new T())(bool multiRet = false) {
 	string ret;
 	string ret2;
 
 	ret ~= typeText!(ReturnType!(__traits(getMember, t, m)));
+	if (multiRet)
+		ret ~= "[]";
+
 	ret ~= " " ~ m ~ "(";
 	
 	enum names = ParameterIdentifierTuple!(mixin("t." ~ m));
