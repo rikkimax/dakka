@@ -20,7 +20,7 @@ for calling them e.g. sequentially.
 Features that should be added:
 -----
 * Security between nodes
-* Load balancing
+* Better load balancing, currently based off of the lag time of the node and if it has actors on it already
 
 Example:
 --------
