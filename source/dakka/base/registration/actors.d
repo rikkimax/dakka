@@ -136,6 +136,12 @@ Actor getInstance(string identifier) {
 	}
 }
 
+bool hasInstance(string identifier) {
+	synchronized {
+		return identifier in localInstances ? true : false;
+	}
+}
+
 Actor createLocalActor(string type) {
 	synchronized {
 		assert(type in classesInfo, "Class " ~ type ~ " has not been registered.");
@@ -213,21 +219,29 @@ private pure {
 
 	string getValuesFromDeserializer(T : Actor, string m)(T t = T.init) {
 		string ret;
-		string ret2;
 
 		//Decerealizer
-		foreach(n; ParameterTypeTuple!(mixin("t." ~ m))) {
-			static if (is(n == class) && is(ptt[i] : Actor)) {
-				// TODO: complex deserializer action for a possibly remote instance
-				ret ~= "grabActorFromData!(" ~ typeText!n ~ ")(d), ";
+		foreach(i, n; ParameterTypeTuple!(mixin("t." ~ m))) {
+			static if (is(n == class) && is(n : Actor)) {
+				ret ~= "grabActorFromData!(" ~ n.stringof ~ ")(d, addr), ";
 			} else {
-				ret ~= "d.value!(" ~ typeText!n ~ "), ";
+				ret ~= "d.value!(" ~ n.stringof ~ "), ";
 			}
 		}
 
 		if (ret.length > 0)
 			ret.length -= 2;
 
+		return ret;
+	}
+
+	string grabImportsForDeserializer(T : Actor, string m)(T t = T.init) {
+		string ret;
+		foreach(n; ParameterTypeTuple!(mixin("t." ~ m))) {
+			static if (is(n == class) || is(n == struct) || is(n == union)) {
+				ret ~= "import " ~ moduleName!n ~ " : " ~ n.stringof ~ ";";
+			}
+		}
 		return ret;
 	}
 }
@@ -250,12 +264,15 @@ private {
 	ubyte[] handleCallActorMethod(T : Actor, string m)(T t, ubyte[] data, string addr=null) {
 		import cerealed;
 		import dakka.base.impl.defs;
+		import dakka.base.remotes.defs : grabActorFromData;
+		import std.traits : moduleName;
 		
 		auto d = Decerealizer(data);
-		
+		mixin(grabImportsForDeserializer!(T, m));
+
 		static if (!hasReturnValue!(T, m)) {
 			// call
-			mixin("t." ~ m)(mixin(getValuesFromDeserializer!(T, m)));
+			mixin("t." ~ m ~ "(" ~ getValuesFromDeserializer!(T, m) ~ ");");
 			return null;
 		} else {
 			// store ret during call

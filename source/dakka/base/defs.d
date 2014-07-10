@@ -133,12 +133,12 @@ class Actor {
 }
 
 class ActorRef(T : Actor) : T {
-	import dakka.base.remotes.defs : getDirector;
+	import dakka.base.remotes.defs : getDirector, DakkaActorRefWrapper;
 	import dakka.base.registration.actors : canLocalCreate, storeActor, createLocalActorNonRef;
 
 	this(string identifier, string remoteAddress) {
 		identifier_ = identifier;
-		remoteAddressIdentifier_ = remoteAddressIdentifier;
+		remoteAddressIdentifier_ = remoteAddress;
 		isLocalInstance_ = false;
 	}
 	
@@ -301,7 +301,8 @@ class AllActorRefs(T : Actor) if (isASingleton!T) {
 }
 
 pure string typeText(T)() {
-	static if (__traits(compiles, {string mName = moduleName!T;})) {
+	import std.traits : moduleName;
+	static if (is(T == class) || is(T == struct) || is(T == union)) {
 		return moduleName!T ~ "." ~ T.stringof;
 	} else {
 		return T.stringof;

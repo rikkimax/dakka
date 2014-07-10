@@ -9,8 +9,10 @@ void main(string[] args) {
 		registerCapability("testing budgies");
 
 		registerActor!MyActorA;
+		registerActor!MyActorB;
 
 		if (args.length == 1 || (args.length == 2 && args[1] == "client")) {
+			registerCapability("test2");
 			auto rconfig = DakkaRemoteServer("localhost", ["127.0.0.1"], 11728);
 			clientConnect(rconfig);
 			runTask({
@@ -19,7 +21,8 @@ void main(string[] args) {
 				logInfo("id of actor created %s %s", aref.identifier, aref.isLocalInstance ? "is local" : "is not local");
 				aref.onChildError(null, "okay hi there!");
 				aref.test("Hiii from the client");
-				assert(aref.add(1, 2) == 3);
+				//assert(aref.add(1, 2) == 3);
+				aref.test2(new ActorRef!MyActorB);
 				aref.die();
 			});
 		}
@@ -47,6 +50,12 @@ class MyActorA : Actor {
 		return x + y;
 	}
 
+	void test2(MyActorB inst) {
+		import ofile = std.file;
+		ofile.append("afile.txt", "test ref " ~ inst.identifier ~ " " ~ inst.remoteAddressIdentifier ~ "\n");
+		inst.hello();
+	}
+
 	override void onStart() {
 		import ofile = std.file;
 		ofile.write("afile.txt", "I'm alive!\n");
@@ -60,5 +69,15 @@ class MyActorA : Actor {
 	override void onChildError(Actor actor, string message) {
 		import ofile = std.file;
 		ofile.append("afile.txt", "I child errored! " ~ (actor is null ? "and its null" : actor.identifier) ~ "\n");
+	}
+}
+
+@DakkaCapability("test2")
+class MyActorB : Actor {
+	this(Actor supervisor = null, bool isLocalInstance = true) { super(supervisor, isLocalInstance);}
+
+	void hello() {
+		import ofile = std.file;
+		ofile.write("afile2.txt", "Saying hello!\n");
 	}
 }

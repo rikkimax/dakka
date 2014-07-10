@@ -3,6 +3,7 @@ import dakka.base.defs;
 import dakka.base.registration.actors;
 import dakka.base.remotes.messages : utc0Time;
 import vibe.d : msecs, Task, send, sleep;
+import cerealed.decerealizer;
 
 private shared {
 	RemoteDirector director;
@@ -342,19 +343,16 @@ struct DakkaActorRefWrapper {
 	string addr;
 }
 
-T grabActorFromData(T)(Decerealizer d) {
-	T ret;
+T grabActorFromData(T)(Decerealizer d, string addr=null) {
 	DakkaActorRefWrapper wrapper = d.value!DakkaActorRefWrapper;
-	
+
 	if (wrapper.addr is null) {
-		if (wrapper.identifier in localInstances) {
-			return new ActorRef!T(cast(T)localInstances[wrapper.identifier], true);
+		if (hasInstance(wrapper.identifier)) {
+			return new ActorRef!T(cast(T)getInstance(wrapper.identifier), true);
 		} else {
 			return new ActorRef!T(wrapper.identifier, addr);
 		}
 	} else {
 		return new ActorRef!T(wrapper.identifier, wrapper.addr);
 	}
-	
-	return ret;
 }

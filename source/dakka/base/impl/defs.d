@@ -9,7 +9,7 @@ pure string getActorImplComs(T : Actor, T t = new T())() {
 	foreach(m; __traits(allMembers, T)) {
 		static if (__traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
 			static if (__traits(isVirtualFunction, __traits(getMember, t, m))) {
-				ret ~= "    " ~ funcDeclText!(T, m);
+				ret ~= funcDeclText!(T, m);
 				ret ~= generateFuncHandler!(T, m);
 				ret ~= "    }\n";
 			}
@@ -22,19 +22,24 @@ pure string getActorImplComs(T : Actor, T t = new T())() {
 
 pure string funcDeclText(T : Actor, string m, T t = new T())() {
 	string ret;
+	string ret2;
+
 	ret ~= typeText!(ReturnType!(__traits(getMember, t, m)));
 	ret ~= " " ~ m ~ "(";
 	
 	enum names = ParameterIdentifierTuple!(mixin("t." ~ m));
 	foreach(i, a; ParameterTypeTuple!(mixin("t." ~ m))) {
-		ret ~= typeText!(a) ~ " " ~ names[i] ~ ", ";
+		static if (is(a == class) || is(a == struct) || is(a == union)) {
+			ret2 ~= "    import " ~ moduleName!a ~ " : " ~ a.stringof ~ ";\n";
+		}
+		ret ~= a.stringof ~ " " ~ names[i] ~ ", ";
 	}
 	
 	if (ret[$-2] == ',')
 		ret.length -= 2;
 	
 	ret ~= ") {\n";
-	return ret;
+	return ret2 ~ "    " ~ ret;
 }
 
 pure string generateFuncHandler(T : Actor, string m)() {
