@@ -19,7 +19,7 @@ pure string generateFuncRemoteHandler(T : Actor, string m, T t = T.init)() {
 	alias ptt = ParameterTypeTuple!(mixin("t." ~ m));
 	foreach(i, n; ParameterIdentifierTuple!(mixin("t." ~ m))) {
 		static if (is(ptt[i] == class) && is(ptt[i] : Actor)) {
-			// TODO: complex serializer action for a possibly remote instance
+			ret ~= "            cereal.write(DakkaActorRefWrapper(" ~ n ~ ".identifier, " ~ n ~ ".isLocalInstance_ ? null : (" ~ n ~ ".remoteAddressIdentifier == remoteAddressIdentifier ? null : " ~ n ~ ".remoteAddressIdentifier)));\n";
 		} else {
 			ret ~= "            cereal.write(" ~ n ~ ");\n";
 		}
@@ -34,7 +34,7 @@ pure string generateFuncRemoteHandler(T : Actor, string m, T t = T.init)() {
 		static if (is(ReturnType!(mixin("t." ~ m)) == class) && is(ReturnType!(mixin("t." ~ m)) : Actor)) {
 			// TODO: complex deserializer action for a possibly remote instance
 		} else {
-			ret ~= "            return cereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
+			ret ~= "            return decereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
 		}
 	} else {
 		// non blocking request

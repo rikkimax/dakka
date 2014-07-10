@@ -257,18 +257,18 @@ private {
 			return null;
 		} else {
 			// store ret during call
-			auto ret = mixin("t." ~ m)(mixin(getValuesFromDeserializer!(T, m)));
+			mixin("auto ret = t." ~ m ~ "(" ~ getValuesFromDeserializer!(T, m) ~ ");");
 			
 			// serialize ret
 			auto c = Cerealiser();
-			static if (is(ReturnType!(mixin("t." ~ m)) == class) && is(ReturnType!(mixin("t." ~ m)) : Actor)) {
-				// TODO: complex deserializer action for a possibly remote instance
+			static if (is(typeof(ret) == class) && is(typeof(ret) : Actor)) {
+				c.write(DakkaActorRefWrapper(ret.identifier, ret.isLocalInstance ? null : (ret.remoteAddressIdentifier == remoteAddressIdentifier ? null : ret.remoteAddressIdentifier)));
 			} else {
 				c ~= ret;
 			}
 			
 			// return ret
-			return c.bytes;
+			return cast(ubyte[])c.bytes;
 		}
 	}
 }
