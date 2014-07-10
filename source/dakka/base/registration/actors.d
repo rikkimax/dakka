@@ -216,7 +216,11 @@ private pure {
 
 		//Decerealizer
 		foreach(n; ParameterTypeTuple!(mixin("t." ~ m))) {
-			ret ~= "d.value!(" ~ typeText!n ~ "), ";
+			static if (is(n == class) && is(ptt[i] : Actor)) {
+				// TODO: complex deserializer action for a possibly remote instance
+			} else {
+				ret ~= "d.value!(" ~ typeText!n ~ "), ";
+			}
 		}
 
 		if (ret.length > 0)
@@ -257,7 +261,11 @@ private {
 			
 			// serialize ret
 			auto c = Cerealiser();
-			c ~= ret;
+			static if (is(ReturnType!(mixin("t." ~ m)) == class) && is(ReturnType!(mixin("t." ~ m)) : Actor)) {
+				// TODO: complex deserializer action for a possibly remote instance
+			} else {
+				c ~= ret;
+			}
 			
 			// return ret
 			return c.bytes;

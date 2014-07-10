@@ -1,9 +1,9 @@
 ﻿module dakka.base.impl.remote;
 import dakka.base.impl.defs;
 import dakka.base.defs;
-import std.traits : ParameterIdentifierTuple;
+import std.traits : ParameterIdentifierTuple, ParameterTypeTuple, ReturnType;
 
-pure string generateFuncRemoteHandler(T : Actor, string m, T t = new T())() {
+pure string generateFuncRemoteHandler(T : Actor, string m, T t = T.init)() {
 	string ret;
 
 	ret ~= "            if(supervisor !is null && !getDirector().validAddressIdentifier(remoteAddressIdentifier)) {\n";
@@ -16,8 +16,13 @@ pure string generateFuncRemoteHandler(T : Actor, string m, T t = new T())() {
 
 	ret ~= "            auto cereal = Cerealiser();\n";
 
-	foreach(n; ParameterIdentifierTuple!(mixin("t." ~ m))) {
-		ret ~= "            cereal.write(" ~ n ~ ");\n";
+	alias ptt = ParameterTypeTuple!(mixin("t." ~ m));
+	foreach(i, n; ParameterIdentifierTuple!(mixin("t." ~ m))) {
+		static if (is(ptt[i] == class) && is(ptt[i] : Actor)) {
+			// TODO: complex serializer action for a possibly remote instance
+		} else {
+			ret ~= "            cereal.write(" ~ n ~ ");\n";
+		}
 	}
 	
 	static if (hasReturnValue!(T, m)) {
@@ -25,7 +30,12 @@ pure string generateFuncRemoteHandler(T : Actor, string m, T t = new T())() {
 		ret ~= "            ubyte[] odata = getDirector().callClassBlocking(remoteAddressIdentifier, identifier, \"" ~ m ~ "\", cast(ubyte[])cereal.bytes);\n";
 		ret ~= "            auto decereal = Decerealiser(odata);\n";
 		// blocking request.
-		ret ~= "            return cereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
+
+		static if (is(ReturnType!(mixin("t." ~ m)) == class) && is(ReturnType!(mixin("t." ~ m)) : Actor)) {
+			// TODO: complex deserializer action for a possibly remote instance
+		} else {
+			ret ~= "            return cereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
+		}
 	} else {
 		// non blocking request
 		ret ~= "            getDirector().callClassNonBlocking(remoteAddressIdentifier, identifier, \"" ~ m ~ "\", cast(ubyte[])cereal.bytes);\n";
