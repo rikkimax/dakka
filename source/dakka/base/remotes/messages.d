@@ -655,10 +655,10 @@ void listenForCommunications(TCPConnection conn, RemoteDirector director) {
 						break;
 				}
 			},
-			(DirectorCommunicationActions action, string uid, string cid, string mid, ubyte[] data, bool expects) {
+			(DirectorCommunicationActions action, string uid, string cid, string mid, shared(ubyte[]) data, bool expects) {
 				switch(action) {
 					case DirectorCommunicationActions.ClassCall:
-						classCallMethod(conn, uid, cid, mid, data, expects);
+						classCallMethod(conn, uid, cid, mid, cast(ubyte[])data, expects);
 						break;
 					default:
 						break;

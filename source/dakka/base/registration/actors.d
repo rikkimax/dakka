@@ -12,6 +12,7 @@ __gshared private {
 	shared(Actor)delegate() [string] createLocalReferenceInstance;
 	shared(Actor)delegate() [string] createLocalReferenceInstanceNonRef;
 	shared(Actor)[string] singletonInstances; //instance[type]
+	ubyte[]delegate(string, ubyte[])[string] localCallInstance;
 }
 
 void registerActor(T : Actor)() {
@@ -115,15 +116,17 @@ string[] capabilitiesRequired(string identifier) {
 	}
 }
 
-void storeActor(Actor actor) {
+void storeActor(T : Actor)(T actor) {
 	synchronized {
 		localInstances[actor.identifier] = cast(shared)actor;
+		localCallInstance[actor.identifier] = (string method, ubyte[] args) {return handleCallActorMethods!T(actor, method, args);};
 	}
 }
 
 void destoreActor(string identifier) {
 	synchronized {
 		localInstances.remove(identifier);
+		localCallInstance.remove(identifier);
 	}
 }
 
@@ -144,6 +147,13 @@ Actor createLocalActorNonRef(string type) {
 	synchronized {
 		assert(type in classesInfo, "Class " ~ type ~ " has not been registered.");
 		return cast()createLocalReferenceInstanceNonRef[type]();
+	}
+}
+
+ubyte[] callMethodOnActor(string identifier, string method, ubyte[] data) {
+	synchronized {
+		assert(identifier in localCallInstance, "Class " ~ identifier ~ " has not been created.");
+		return localCallInstance[identifier](method, data);
 	}
 }
 
@@ -199,5 +209,58 @@ private pure {
 		}
 
 		return ret;
+	}
+
+	string getValuesFromDeserializer(T : Actor, string m)(T t = T.init) {
+		string ret;
+
+		//Decerealizer
+		foreach(n; ParameterTypeTuple!(mixin("t." ~ m))) {
+			ret ~= "d.value!(" ~ typeText!n ~ "), ";
+		}
+
+		if (ret.length > 0)
+			ret.length -= 2;
+
+		return ret;
+	}
+}
+
+private {
+	ubyte[] handleCallActorMethods(T : Actor)(T t, string method, ubyte[] data) {
+		foreach(m; __traits(allMembers, T)) {
+			static if (__traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
+				static if (__traits(isVirtualFunction, __traits(getMember, t, m))) {
+					if (m == method) {
+						return handleCallActorMethod!(T, m)(t, data);
+					}
+				}
+			}
+		}
+		
+		return null;
+	}
+
+	ubyte[] handleCallActorMethod(T : Actor, string m)(T t, ubyte[] data) {
+		import cerealed;
+		import dakka.base.impl.defs;
+		
+		auto d = Decerealizer(data);
+		
+		static if (!hasReturnValue!(T, m)) {
+			// call
+			mixin("t." ~ m)(mixin(getValuesFromDeserializer!(T, m)));
+			return null;
+		} else {
+			// store ret during call
+			auto ret = mixin("t." ~ m)(mixin(getValuesFromDeserializer!(T, m)));
+			
+			// serialize ret
+			auto c = Cerealiser();
+			c ~= ret;
+			
+			// return ret
+			return c.bytes;
+		}
 	}
 }

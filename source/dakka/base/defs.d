@@ -177,7 +177,7 @@ class ActorRef(T : Actor) : T {
 				if (localRef.identifier_ is null) {
 					identifier_ = director.localActorCreate(typeText!T);
 					localRef.identifier_ = identifier_;
-					storeActor(localRef);
+					storeActor!T(localRef);
 
 					// new thread for on start. Yes its evil. But it'll work.
 					runTask({ (cast(T)localRef).onStart(); });

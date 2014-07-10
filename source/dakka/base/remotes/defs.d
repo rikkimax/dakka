@@ -199,8 +199,13 @@ class RemoteDirector {
 		return true;
 	}
 	
-	void receivedBlockingMethodCall(string uid, string addr, string identfier, string method, ubyte[] data){}//TODO
-	ubyte[] receivedNonBlockingMethodCall(string uid, string addr, string identfier, string method, ubyte[] data){return null;}//TODO
+	void receivedBlockingMethodCall(string uid, string addr, string identifier, string method, ubyte[] data) {
+		callMethodOnActor(identifier, method, data);
+	}
+
+	ubyte[] receivedNonBlockingMethodCall(string uid, string addr, string identifier, string method, ubyte[] data){
+		return callMethodOnActor(identifier, method, data);
+	}
 	
 	void receivedClassReturn(string uid, ubyte[] data) {
 		retData[uid] = cast(shared)data;
@@ -236,7 +241,6 @@ class RemoteDirector {
 
 				remoteConnections[addr].send(DCA.CreateClass, uid, identifier, parent);
 
-				// TODO: get the class instance from this, return it.
 				while(uid !in remoteClasses && (cast()remoteConnections[addr]).running)
 				{sleep(25.msecs());}
 
@@ -251,7 +255,6 @@ class RemoteDirector {
 
 	void killClass(string addr, string type, string identifier) {
 		import std.algorithm : filter;
-		// TODO: something
 		string[] newIds;
 		foreach(v; remoteClassInstances[addr][type]) {
 			if (v != identifier)

@@ -39,7 +39,7 @@ class MyActorA : Actor {
 
 	void test(string s){
 		import ofile = std.file;
-		ofile.write("afile.txt", "got a message! " ~ s ~ "\n");
+		ofile.append("afile.txt", "got a message! " ~ s ~ "\n");
 	}
 
 	override void onStart() {
