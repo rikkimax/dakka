@@ -332,3 +332,12 @@ void serverStart(DakkaServerSettings[] servers...) {
 		handleServerMessageServer(server);
 	}
 }
+
+/*
+ * Other
+ */
+
+struct DakkaActorRefWrapper {
+	string identifier;
+	string addr;
+}

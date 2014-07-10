@@ -19,6 +19,7 @@ void main(string[] args) {
 				logInfo("id of actor created %s %s", aref.identifier, aref.isLocalInstance ? "is local" : "is not local");
 				aref.onChildError(null, "okay hi there!");
 				aref.test("Hiii from the client");
+				assert(aref.add(1, 2) == 3);
 				aref.die();
 			});
 		}
@@ -40,6 +41,10 @@ class MyActorA : Actor {
 	void test(string s){
 		import ofile = std.file;
 		ofile.append("afile.txt", "got a message! " ~ s ~ "\n");
+	}
+
+	int add(int x, int y) {
+		return x + y;
 	}
 
 	override void onStart() {
