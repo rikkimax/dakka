@@ -11,6 +11,11 @@ Features:
 * On start/stop/error support
 * Capabilities per node (can this node do x? if not which can do to create a reference?)
 * Seemless integration of both actor references to actors
+* Singleton (controller classes) actor support per node, works with
+``
+AllActorRefs
+``
+for calling them e.g. sequentially.
 
 TODO:
 -----
