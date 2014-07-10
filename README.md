@@ -17,10 +17,8 @@ AllActorRefs
 ``
 for calling them e.g. sequentially.
 
-TODO:
+Features that should be added:
 -----
-* Supporting of exceptions on error for remote'd calling
-* Killing remote nodes
 * Security between nodes
 * Load balancing
 
