@@ -263,46 +263,7 @@ class AllActorRefs(T : Actor) if (isASingleton!T) {
 			}
 		}
 	}
-
-	/**
-	 * class T : Actor {
-	 * 		@DakkaCall(DakkaCallStrategy.Sequentially)
-	 * 		string test(int x) {
-	 * 			return to!string(x) ~ "something";
-	 * 		}
-	 * 
-	 * 		@DakkaCall!("1something")(DakkaCallStrategy.Until)
-	 * 		string test2(int x) {
-	 * 			return to!string(x) ~ "something";
-	 * 		}
-	 * }
-	 *
-	 * string[] test(int x) {
-	 * 		checkForUpdatesToAddresses();
-	 *		string[] ret;
-	 *
-	 *		foreach(actor; remoteRefs.values) {
-	 *			ret ~= actor.test(x);
-	 *		}
-	 * 		return ret;
-	 * }
-	 * 
-	 * string[] test2(int x) {
-	 * 		checkForUpdatesToAddresses();
-	 *		string[] ret;
-	 *
-	 *		foreach(actor; remoteRefs.values) {
-	 *			string v = actor.test(x);
-	 *			ret ~= v;
-	 *			if (v == "1something") {
-	 *				break;
-	 *			}
-	 *		}
-	 * 		return ret;
-	 * }
-	 */
-
-	pragma(msg, getActorWrapImpl!T);
+	 
 	mixin(getActorWrapImpl!T);
 }
 
