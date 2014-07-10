@@ -43,8 +43,6 @@ void main(string[] args) {
 
 @DakkaCapability("test")
 class MyActorA : Actor {
-	this(Actor supervisor = null, bool isLocalInstance = true) { super(supervisor, isLocalInstance);}
-
 	void test(string s){
 		import ofile = std.file;
 		ofile.append("afile.txt", "got a message! " ~ s ~ "\n");
@@ -78,8 +76,6 @@ class MyActorA : Actor {
 
 @DakkaCapability("test2")
 class MyActorB : Actor {
-	this(Actor supervisor = null, bool isLocalInstance = true) { super(supervisor, isLocalInstance);}
-
 	void hello() {
 		import ofile = std.file;
 		ofile.write("afile2.txt", "Saying hello!\n");
