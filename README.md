@@ -96,7 +96,7 @@ void main() {
 
 Of course you are not forced to use actors on local/remote. This is merely an example. A server can use actors on the client.<br/>
 As a note, from within an actor, use
-``D
+``
 actorOf!MyActorB
 ``
 to get a reference to an actor.<br/>
