@@ -4,6 +4,10 @@ import dakka.base.remotes.messages;
 import vibe.d;
 import std.string : join;
 
+private shared {
+	TCPListener[][] allConnections;
+}
+
 void handleServerMessageServer(DakkaServerSettings settings) {
 	TCPListener[] listensOn = listenTCP(settings.port, (conn) {
 		string addr = conn.remoteAddress.toString();
@@ -130,7 +134,20 @@ void handleServerMessageServer(DakkaServerSettings settings) {
 		logInfo("Client disconnected %s", addr);
 	});
 
+	synchronized {
+		allConnections ~= cast(shared)listensOn;
+	}
 	logInfo("Started server listening");
+}
+
+void shutdownListeners() {
+	synchronized {
+		foreach(ac; allConnections) {
+			foreach(c; ac) {
+				(cast()c).stopListening();
+			}
+		}
+	}
 }
 
 void capabilitiesMessage(TCPConnection conn) {

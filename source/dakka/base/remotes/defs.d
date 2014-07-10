@@ -294,6 +294,13 @@ class RemoteDirector {
 			
 		return ret;
 	}
+
+	void shutdownAllConnections() {
+		import dakka.base.remotes.server_handler : shutdownListeners;
+		import dakka.base.remotes.client_handler : stopAllConnections;
+		shutdownListeners();
+		stopAllConnections();
+	}
 }
 
 struct RemoteClassIdentifier {

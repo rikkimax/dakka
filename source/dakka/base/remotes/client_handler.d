@@ -4,7 +4,13 @@ import dakka.base.remotes.messages;
 import vibe.d;
 import std.string : join;
 
+private __gshared {
+	bool stopConnections;
+}
+
 void handleClientMessageServer(DakkaRemoteServer settings) {
+	stopConnections = false;
+
 	runTask({
 		foreach(ip; settings.ips) {
 			auto conn = connectTCP(ip, settings.port);
@@ -21,7 +27,7 @@ void handleClientMessageServer(DakkaRemoteServer settings) {
 			size_t iteration;
 
 			logInfo("Main loop for server %s", addr);
-			while(conn.connected) {
+			while(conn.connected && !stopConnections) {
 				if (iteration % 100 == 5 && stage > 0)
 					sendSyncMessage(conn);
 
@@ -114,9 +120,16 @@ void handleClientMessageServer(DakkaRemoteServer settings) {
 				sleep(25.msecs);
 			}
 
+			if (stopConnections)
+				conn.close();
+
 			logInfo("Server disconnected %s", addr);
 		}
 	});
+}
+
+void stopAllConnections() {
+	stopConnections = true;
 }
 
 void initMessage(TCPConnection conn) {
