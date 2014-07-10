@@ -32,10 +32,12 @@ class Actor {
 		// they may be null (have been killed).
 		Actor[] _children;
 		Actor supervisor_;
-		bool isLocalInstance_;
 		bool isAlive_ = true;
 		bool isDying_ = false;
+
 		string identifier_;
+		string remoteAddressIdentifier_;
+		bool isLocalInstance_;
 	}
 	
 	final {
@@ -70,6 +72,7 @@ class Actor {
 		bool isLocalInstance() { return isLocalInstance_; }
 		bool isAlive() { return isAlive_; }
 		string identifier() { return identifier_; }
+		string remoteAddressIdentifier() { return remoteAddressIdentifier_; }
 	}
 	
 	/**
@@ -135,7 +138,7 @@ class ActorRef(T : Actor) : T {
 
 	this(string identifier, string remoteAddress) {
 		identifier_ = identifier;
-		remoteAddressIdentifier = remoteAddressIdentifier;
+		remoteAddressIdentifier_ = remoteAddressIdentifier;
 		isLocalInstance_ = false;
 	}
 	
@@ -159,7 +162,7 @@ class ActorRef(T : Actor) : T {
 					// lastly I'll store that info.
 					if (identifier !is null) {
 						identifier_ = identifier;
-						remoteAddressIdentifier = addr;
+						remoteAddressIdentifier_ = addr;
 						isLocalInstance_ = false;
 					} else {
 						// hey supervisor... we couldn't create this reference. What do you want to do now?
@@ -188,7 +191,6 @@ class ActorRef(T : Actor) : T {
 
 	private {
 		T localRef;
-		string remoteAddressIdentifier;
 	}
 
 	override {
