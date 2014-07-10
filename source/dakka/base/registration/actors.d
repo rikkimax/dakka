@@ -12,7 +12,7 @@ __gshared private {
 	shared(Actor)delegate() [string] createLocalReferenceInstance;
 	shared(Actor)delegate() [string] createLocalReferenceInstanceNonRef;
 	shared(Actor)[string] singletonInstances; //instance[type]
-	ubyte[]delegate(string, ubyte[])[string] localCallInstance;
+	ubyte[]delegate(string, ubyte[], string=null)[string] localCallInstance;
 }
 
 void registerActor(T : Actor)() {
@@ -119,7 +119,7 @@ string[] capabilitiesRequired(string identifier) {
 void storeActor(T : Actor)(T actor) {
 	synchronized {
 		localInstances[actor.identifier] = cast(shared)actor;
-		localCallInstance[actor.identifier] = (string method, ubyte[] args) {return handleCallActorMethods!T(actor, method, args);};
+		localCallInstance[actor.identifier] = (string method, ubyte[] args, string addr=null) {return handleCallActorMethods!T(actor, method, args, addr);};
 	}
 }
 
@@ -150,10 +150,10 @@ Actor createLocalActorNonRef(string type) {
 	}
 }
 
-ubyte[] callMethodOnActor(string identifier, string method, ubyte[] data) {
+ubyte[] callMethodOnActor(string identifier, string method, ubyte[] data, string addr=null) {
 	synchronized {
 		assert(identifier in localCallInstance, "Class " ~ identifier ~ " has not been created.");
-		return localCallInstance[identifier](method, data);
+		return localCallInstance[identifier](method, data, addr);
 	}
 }
 
@@ -213,11 +213,13 @@ private pure {
 
 	string getValuesFromDeserializer(T : Actor, string m)(T t = T.init) {
 		string ret;
+		string ret2;
 
 		//Decerealizer
 		foreach(n; ParameterTypeTuple!(mixin("t." ~ m))) {
 			static if (is(n == class) && is(ptt[i] : Actor)) {
 				// TODO: complex deserializer action for a possibly remote instance
+				ret ~= "grabActorFromData!(" ~ typeText!n ~ ")(d), ";
 			} else {
 				ret ~= "d.value!(" ~ typeText!n ~ "), ";
 			}
@@ -231,12 +233,12 @@ private pure {
 }
 
 private {
-	ubyte[] handleCallActorMethods(T : Actor)(T t, string method, ubyte[] data) {
+	ubyte[] handleCallActorMethods(T : Actor)(T t, string method, ubyte[] data, string addr=null) {
 		foreach(m; __traits(allMembers, T)) {
 			static if (__traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
 				static if (__traits(isVirtualFunction, __traits(getMember, t, m))) {
 					if (m == method) {
-						return handleCallActorMethod!(T, m)(t, data);
+						return handleCallActorMethod!(T, m)(t, data, addr);
 					}
 				}
 			}
@@ -245,7 +247,7 @@ private {
 		return null;
 	}
 
-	ubyte[] handleCallActorMethod(T : Actor, string m)(T t, ubyte[] data) {
+	ubyte[] handleCallActorMethod(T : Actor, string m)(T t, ubyte[] data, string addr=null) {
 		import cerealed;
 		import dakka.base.impl.defs;
 		

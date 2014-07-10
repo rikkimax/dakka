@@ -200,11 +200,11 @@ class RemoteDirector {
 	}
 	
 	void receivedBlockingMethodCall(string uid, string addr, string identifier, string method, ubyte[] data) {
-		callMethodOnActor(identifier, method, data);
+		callMethodOnActor(identifier, method, data, addr);
 	}
 
 	ubyte[] receivedNonBlockingMethodCall(string uid, string addr, string identifier, string method, ubyte[] data){
-		return callMethodOnActor(identifier, method, data);
+		return callMethodOnActor(identifier, method, data, addr);
 	}
 	
 	void receivedClassReturn(string uid, ubyte[] data) {
@@ -340,4 +340,21 @@ void serverStart(DakkaServerSettings[] servers...) {
 struct DakkaActorRefWrapper {
 	string identifier;
 	string addr;
+}
+
+T grabActorFromData(T)(Decerealizer d) {
+	T ret;
+	DakkaActorRefWrapper wrapper = d.value!DakkaActorRefWrapper;
+	
+	if (wrapper.addr is null) {
+		if (wrapper.identifier in localInstances) {
+			return new ActorRef!T(cast(T)localInstances[wrapper.identifier], true);
+		} else {
+			return new ActorRef!T(wrapper.identifier, addr);
+		}
+	} else {
+		return new ActorRef!T(wrapper.identifier, wrapper.addr);
+	}
+	
+	return ret;
 }

@@ -32,7 +32,7 @@ pure string generateFuncRemoteHandler(T : Actor, string m, T t = T.init)() {
 		// blocking request.
 
 		static if (is(ReturnType!(mixin("t." ~ m)) == class) && is(ReturnType!(mixin("t." ~ m)) : Actor)) {
-			// TODO: complex deserializer action for a possibly remote instance
+			ret ~= "            return grabActorFromData!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ")(decereal);";
 		} else {
 			ret ~= "            return decereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
 		}
