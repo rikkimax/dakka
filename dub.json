@@ -3,6 +3,7 @@
 	"description": "An actor framework, that supports remote method calls.",
 	"copyright": "Copyright © 2014, Richard Andrew Cattermole",
 	"authors": ["Richard Andrew Cattermole"],
+	"license": "MIT",
 	"dependencies": {
 		"vibe-d": ">=0.7.20",
 		"cerealed": "~master"
