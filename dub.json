@@ -8,5 +8,6 @@
 		"vibe-d": ">=0.7.20",
 		"cerealed": "~master"
 	},
-	"versions": ["VibeCustomMain"]
+	"versions": ["VibeCustomMain"],
+	"mainSourceFile": "source/dakka/base/app.d"
 }
