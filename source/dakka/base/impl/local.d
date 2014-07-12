@@ -3,6 +3,9 @@ import dakka.base.impl.defs;
 import dakka.base.defs;
 
 pure string generateFuncLocalHandler(T : Actor, string m)() {
+	import std.traits : ReturnType;
+	enum T t = T.init;
+
 	string ret;
 	ret ~= "            synchronized(localRef) {\n";
 
@@ -16,7 +19,18 @@ pure string generateFuncLocalHandler(T : Actor, string m)() {
 
 	static if (hasReturnValue!(T, m)) {
 		// this shouldn't be pushed into a new thread. Blocks because we have a return type.
-		ret ~= "                return localRef." ~ m ~ "(" ~ generateFuncCall!(T, m) ~ ");\n";
+		ret ~= "                try {\n";
+		ret ~= "                    return localRef." ~ m ~ "(" ~ generateFuncCall!(T, m) ~ ");\n";
+		ret ~= "                } catch(Exception e) {\n";
+		ret ~= "                    if(supervisor !is null) {\n";
+		ret ~= "                        if (supervisor.isLocalInstance || (!supervisor.isLocalInstance && getDirector().validAddressIdentifier((cast(ActorRef!(Actor))supervisor).remoteAddressIdentifier))) {\n";
+		ret ~= "                            (cast()supervisor).onChildError(this, e.toString());\n";
+		ret ~= "                        } else {\n";
+		ret ~= "                            die();\n";
+		ret ~= "                        }\n";
+		ret ~= "                    }\n";
+		ret ~= "                    return " ~ typeText!(ReturnType!(mixin("t." ~ m))) ~ ".init;\n";
+		ret ~= "                }\n";
 	} else {
 		// with a void return type, we want to push this into another thread. Asynchronous because we don't have a return type. No point blocking is there?
 		ret ~= "                runTask({\n";

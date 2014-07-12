@@ -247,6 +247,10 @@ private pure {
 }
 
 private {
+	import dakka.base.impl.defs;
+	import dakka.base.remotes.defs : grabActorFromData;
+	import cerealed;
+
 	ubyte[] handleCallActorMethods(T : Actor)(T t, string method, ubyte[] data, string addr=null) {
 		foreach(m; __traits(allMembers, T)) {
 			static if (__traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
@@ -262,21 +266,15 @@ private {
 	}
 
 	ubyte[] handleCallActorMethod(T : Actor, string m)(T t, ubyte[] data, string addr=null) {
-		import cerealed;
-		import dakka.base.impl.defs;
-		import dakka.base.remotes.defs : grabActorFromData;
-		import std.traits : moduleName;
-		
 		auto d = Decerealizer(data);
-		mixin(grabImportsForDeserializer!(T, m));
 
 		static if (!hasReturnValue!(T, m)) {
 			// call
-			mixin("t." ~ m ~ "(" ~ getValuesFromDeserializer!(T, m) ~ ");");
+			doCallActorMethod!(T, m)(t, d, data, addr);
 			return null;
 		} else {
 			// store ret during call
-			mixin("auto ret = t." ~ m ~ "(" ~ getValuesFromDeserializer!(T, m) ~ ");");
+			auto ret = doCallActorMethod!(T, m)(t, d, data, addr);
 			
 			// serialize ret
 			auto c = Cerealiser();
@@ -290,4 +288,29 @@ private {
 			return cast(ubyte[])c.bytes;
 		}
 	}
+
+	U doCallActorMethod(T : Actor, string m, T tt = T.init, U=ReturnType!(mixin("tt." ~ m)))(T t, Decerealizer d, ubyte[] data, string addr=null) {
+		import std.traits : moduleName;
+		import dakka.base.remotes.defs : getDirector;
+		mixin(grabImportsForDeserializer!(T, m));
+
+		try {
+			static if (!hasReturnValue!(T, m)) {
+				mixin("t." ~ m ~ "(" ~ getValuesFromDeserializer!(T, m) ~ ");");
+			} else {
+				mixin("return t." ~ m ~ "(" ~ getValuesFromDeserializer!(T, m) ~ ");");
+			}
+		} catch(Exception e) {
+          	if(t.supervisor !is null) {
+            	if (t.supervisor.isLocalInstance || (!t.supervisor.isLocalInstance && getDirector().validAddressIdentifier((cast(ActorRef!(Actor))t.supervisor).remoteAddressIdentifier))) {
+               		(cast()t.supervisor).onChildError(t, e.toString());
+				} else {
+                	t.die();
+				}
+			}
+			static if (hasReturnValue!(T, m))
+            	return ReturnType!(mixin("t." ~ m)).init;
+		}
+	}
 }
+
