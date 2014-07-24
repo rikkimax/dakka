@@ -4,10 +4,27 @@
 	"copyright": "Copyright © 2014, Richard Andrew Cattermole",
 	"authors": ["Richard Andrew Cattermole"],
 	"license": "MIT",
-	"dependencies": {
-		"vibe-d": ">=0.7.20",
-		"cerealed": "~master"
-	},
-	"versions": ["VibeCustomMain"],
-	"mainSourceFile": "source/dakka/base/app.d"
+	"sourcePaths": [],
+	"targetType": "none",
+	"subPackages": [
+		{
+			"name": "base",
+			"mainSourceFile": "source/base/app.d",
+			"dependencies": {
+				"vibe-d": ">=0.7.20",
+				"cerealed": "~master"
+			},
+			"versions": ["VibeCustomMain"],
+			"sourcePaths": ["source/base/dakka"],
+			"sourceImportPaths": ["source/base"]
+		},
+		{
+			"name": "vibe-d_wrappers",
+			"dependencies": {
+				"dakka:base": "~master"
+			},
+			"sourcePaths": ["source/base/dakka", "source/vibe-d_wrappers/dakka"],
+			"sourceImportPaths": ["source/vibe-d_wrappers"]
+		}
+	]
 }

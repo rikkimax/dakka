@@ -9,20 +9,22 @@ pure string getActorWrapImpl(T : Actor)(T t = T.init) {
 	foreach(m; __traits(allMembers, T)) {
 		static if (__traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
 			static if (__traits(isVirtualFunction, __traits(getMember, t, m))) {
-				ret ~= funcDeclText!(T, m)(true);
+				static if (!isMethodLocalOnly!(T, m)) {
+					ret ~= funcDeclText!(T, m)(true);
 
-				switch(getCallUDA!(T, m).strategy) {
-					case DakkaCallStrategy.Until:
-						untilWrapStrategy!(T, m)(ret);
-						break;
+					switch(getCallUDA!(T, m).strategy) {
+						case DakkaCallStrategy.Until:
+							untilWrapStrategy!(T, m)(ret);
+							break;
 
-					case DakkaCallStrategy.Sequentially:
-					default:
-						sequentialWrapStrategy!(T, m)(ret);
-						break;
+						case DakkaCallStrategy.Sequentially:
+						default:
+							sequentialWrapStrategy!(T, m)(ret);
+							break;
+					}
+
+					ret ~= "    }\n";
 				}
-
-				ret ~= "    }\n";
 			}
 		}
 	}

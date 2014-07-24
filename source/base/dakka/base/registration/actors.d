@@ -168,95 +168,97 @@ ubyte[] callMethodOnActor(string identifier, string method, ubyte[] data, string
  * Dyanmic stuff for remotes
  */
 
-private pure {
-	import dakka.base.remotes.messages;
-	import std.traits;
-
-	ActorInformation extractActorInfo(T : Actor)() {
-		ActorInformation ret;
-		ret.name = typeText!T;
-		ret.methods = extractActorMethods!T;
-		return ret;
-	}
-
-	ActorMethod[] extractActorMethods(T : Actor)() {
-		ActorMethod[] ret;
-		T t;
-
-		foreach(m; __traits(allMembers, T)) {
-			static if (__traits(compiles, mixin("t." ~ m))) {
-				static if (isCallable!(mixin("t." ~ m))) {
-					ret ~= extractActorMethod!(T, m);
-				}
-			}
-		}
-
-		return ret;
-	}
-
-	ActorMethod extractActorMethod(T : Actor, string m)() {
-		ActorMethod ret;
-		ret.name = m;
-		ret.return_type = typeText!(ReturnType!(__traits(getMember, T, m)));
-
-		enum argStorage = ParameterStorageClassTuple!(__traits(getMember, T, m));
-		foreach(i, arg; ParameterTypeTuple!(__traits(getMember, T, m))) {
-			ActorMethodArgument argument;
-			argument.type = typeText!(arg);
-
-			if (argStorage[i] == ParameterStorageClass.out_)
-				argument.usage = ActorMethodArgumentUsage.Out;
-			else if (argStorage[i] == ParameterStorageClass.ref_)
-				argument.usage = ActorMethodArgumentUsage.Ref;
-			else
-				argument.usage = ActorMethodArgumentUsage.In;
-
-			ret.arguments ~= argument;
-		}
-
-		return ret;
-	}
-
-	string getValuesFromDeserializer(T : Actor, string m)(T t = T.init) {
-		string ret;
-
-		//Decerealizer
-		foreach(i, n; ParameterTypeTuple!(mixin("t." ~ m))) {
-			static if (is(n == class) && is(n : Actor)) {
-				ret ~= "grabActorFromData!(" ~ n.stringof ~ ")(d, addr), ";
-			} else {
-				ret ~= "d.value!(" ~ n.stringof ~ "), ";
-			}
-		}
-
-		if (ret.length > 0)
-			ret.length -= 2;
-
-		return ret;
-	}
-
-	string grabImportsForDeserializer(T : Actor, string m)(T t = T.init) {
-		string ret;
-		foreach(n; ParameterTypeTuple!(mixin("t." ~ m))) {
-			static if (is(n == class) || is(n == struct) || is(n == union)) {
-				ret ~= "import " ~ moduleName!n ~ " : " ~ n.stringof ~ ";";
-			}
-		}
-		return ret;
-	}
-}
-
 private {
 	import dakka.base.impl.defs;
 	import dakka.base.remotes.defs : grabActorFromData;
 	import cerealed;
 
+	pure {
+		import dakka.base.remotes.messages;
+		import std.traits;
+
+		ActorInformation extractActorInfo(T : Actor)() {
+			ActorInformation ret;
+			ret.name = typeText!T;
+			ret.methods = extractActorMethods!T;
+			return ret;
+		}
+
+		ActorMethod[] extractActorMethods(T : Actor)() {
+			ActorMethod[] ret;
+			T t;
+
+			foreach(m; __traits(allMembers, T)) {
+				static if (__traits(compiles, mixin("t." ~ m))) {
+					static if (isCallable!(mixin("t." ~ m))) {
+						static if (!isMethodLocalOnly!(T, m))
+							ret ~= extractActorMethod!(T, m);
+					}
+				}
+			}
+
+			return ret;
+		}
+
+		ActorMethod extractActorMethod(T : Actor, string m)() {
+			ActorMethod ret;
+			ret.name = m;
+			ret.return_type = typeText!(ReturnType!(__traits(getMember, T, m)));
+
+			enum argStorage = ParameterStorageClassTuple!(__traits(getMember, T, m));
+			foreach(i, arg; ParameterTypeTuple!(__traits(getMember, T, m))) {
+				ActorMethodArgument argument;
+				argument.type = typeText!(arg);
+
+				if (argStorage[i] == ParameterStorageClass.out_)
+					argument.usage = ActorMethodArgumentUsage.Out;
+				else if (argStorage[i] == ParameterStorageClass.ref_)
+					argument.usage = ActorMethodArgumentUsage.Ref;
+				else
+					argument.usage = ActorMethodArgumentUsage.In;
+
+				ret.arguments ~= argument;
+			}
+
+			return ret;
+		}
+
+		string getValuesFromDeserializer(T : Actor, string m)(T t = T.init) {
+			string ret;
+
+			//Decerealizer
+			foreach(i, n; ParameterTypeTuple!(mixin("t." ~ m))) {
+				static if (is(n == class) && is(n : Actor)) {
+					ret ~= "grabActorFromData!(" ~ n.stringof ~ ")(d, addr), ";
+				} else {
+					ret ~= "d.value!(" ~ n.stringof ~ "), ";
+				}
+			}
+
+			if (ret.length > 0)
+				ret.length -= 2;
+
+			return ret;
+		}
+
+		string grabImportsForDeserializer(T : Actor, string m)(T t = T.init) {
+			string ret;
+			foreach(n; ParameterTypeTuple!(mixin("t." ~ m))) {
+				static if (is(n == class) || is(n == struct) || is(n == union)) {
+					ret ~= "import " ~ moduleName!n ~ " : " ~ n.stringof ~ ";";
+				}
+			}
+			return ret;
+		}
+	}
+	
 	ubyte[] handleCallActorMethods(T : Actor)(T t, string method, ubyte[] data, string addr=null) {
 		foreach(m; __traits(allMembers, T)) {
-			static if (__traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
+			static if (__traits(compiles, __traits(getMember, t, m)) && __traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
 				static if (__traits(isVirtualFunction, __traits(getMember, t, m))) {
 					if (m == method) {
-						return handleCallActorMethod!(T, m)(t, data, addr);
+						static if (!isMethodLocalOnly!(T, m))
+							return handleCallActorMethod!(T, m)(t, data, addr);
 					}
 				}
 			}
@@ -267,7 +269,7 @@ private {
 
 	ubyte[] handleCallActorMethod(T : Actor, string m)(T t, ubyte[] data, string addr=null) {
 		auto d = Decerealizer(data);
-
+		
 		static if (!hasReturnValue!(T, m)) {
 			// call
 			doCallActorMethod!(T, m)(t, d, data, addr);

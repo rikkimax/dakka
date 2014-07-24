@@ -297,6 +297,18 @@ pure bool isASingleton(T : Actor)() {
 	return false;
 }
 
+struct DakkaLocalOnly {}
+pure bool isMethodLocalOnly(T : Actor, string m)() {
+	enum T t = T.init;
+	foreach(uda; __traits(getAttributes, mixin("t." ~ m))) {
+		static if (is(uda == DakkaLocalOnly)) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 enum DakkaCallStrategy {
 	Sequentially,
 	Until

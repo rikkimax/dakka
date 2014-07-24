@@ -7,11 +7,12 @@ pure string getActorImplComs(T : Actor, T t = new T())() {
 	ret ~= "override {\n";
 	
 	foreach(m; __traits(allMembers, T)) {
-		static if (__traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
+		static if (__traits(compiles, __traits(getMember, t, m)) && __traits(getProtection, __traits(getMember, t, m)) == "public" && !hasMember!(Actor, m)) {
 			static if (__traits(isVirtualFunction, __traits(getMember, t, m))) {
-				ret ~= funcDeclText!(T, m);
-				ret ~= generateFuncHandler!(T, m);
-				ret ~= "    }\n";
+				static if (!isMethodLocalOnly!(T, m))
+					ret ~= funcDeclText!(T, m);
+					ret ~= generateFuncHandler!(T, m);
+					ret ~= "    }\n";
 			}
 		}
 	}
