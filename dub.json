@@ -5,18 +5,16 @@
 	"authors": ["Richard Andrew Cattermole"],
 	"license": "MIT",
 	"sourcePaths": [],
-	"targetType": "none",
 	"subPackages": [
 		{
 			"name": "base",
-			"mainSourceFile": "source/base/app.d",
 			"dependencies": {
 				"vibe-d": ">=0.7.20",
 				"cerealed": "~master"
 			},
 			"versions": ["VibeCustomMain"],
 			"sourcePaths": ["source/base/dakka"],
-			"sourceImportPaths": ["source/base"]
+			"sourceImportPaths": ["source/base", "VibeCustomMain"]
 		},
 		{
 			"name": "vibe-d_wrappers",
@@ -24,7 +22,14 @@
 				"dakka:base": "~master"
 			},
 			"sourcePaths": ["source/base/dakka", "source/vibe-d_wrappers/dakka"],
-			"sourceImportPaths": ["source/vibe-d_wrappers"]
+			"sourceImportPaths": ["source/vibe-d_wrappers", "VibeCustomMain"]
+		},
+		{
+			"name": "test",
+			"sourceFiles": ["source/app.d"],
+			"dependencies": {
+			    "dakka:base": "~master"
+			}
 		}
 	]
 }
