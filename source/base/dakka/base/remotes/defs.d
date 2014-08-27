@@ -121,7 +121,7 @@ class RemoteDirector {
 
 		// preferable vs not preferable?
 		foreach(addr; addrs) {
-			if (addrLagCheckUse.get(addr, true)) {
+			if ((cast()addrLagCheckUse).get(addr, true)) {
 				return addr;
 			}
 		}

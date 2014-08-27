@@ -2,7 +2,7 @@
 import dakka.base.defs;
 import std.traits;
 
-pure string getActorImplComs(T : Actor, T t = new T())() {
+pure string getActorImplComs(T : Actor, T t = T.init)() {
 	string ret;
 	ret ~= "override {\n";
 	
@@ -21,7 +21,7 @@ pure string getActorImplComs(T : Actor, T t = new T())() {
 	return ret;
 }
 
-pure string funcDeclText(T : Actor, string m, T t = new T())(bool multiRet = false) {
+pure string funcDeclText(T : Actor, string m, T t = T.init)(bool multiRet = false) {
 	string ret;
 	string ret2;
 
@@ -69,7 +69,7 @@ pure string generateFuncHandler(T : Actor, string m)() {
 	return ret;
 }
 
-pure string generateFuncCall(T : Actor, string m, T t = new T())() {
+pure string generateFuncCall(T : Actor, string m, T t = T.init)() {
 	string ret;
 	foreach(n; ParameterIdentifierTuple!(mixin("t." ~ m))) {
 		ret ~= n ~ ", ";
@@ -81,7 +81,7 @@ pure string generateFuncCall(T : Actor, string m, T t = new T())() {
 	return ret;
 }
 
-pure bool hasReturnValue(T : Actor, string m, T t = new T())() {
+pure bool hasReturnValue(T : Actor, string m, T t = T.init)() {
 	static if (ReturnType!(__traits(getMember, t, m)).stringof != "void") {
 		return true;
 	} else {
