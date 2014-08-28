@@ -34,6 +34,7 @@ pure string generateFuncRemoteHandler(T : Actor, string m, T t = T.init)() {
 		static if (is(ReturnType!(mixin("t." ~ m)) == class) && is(ReturnType!(mixin("t." ~ m)) : Actor)) {
 			ret ~= "            return grabActorFromData!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ")(decereal);";
 		} else {
+            // TODO: array support
 			ret ~= "            return decereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
 		}
 	} else {

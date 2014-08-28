@@ -97,9 +97,9 @@ final struct DakkaSession {
 	}
 
 	int opApply(int delegate(string key, string value) del) {
-		foreach(key; reqresp_.session_keys)
+		/*foreach(key; reqresp_.session_keys)
 			if( auto ret = del(key, reqresp_.session_get(key)) != 0 )
-				return ret;
+				return ret;*/
 		return 0;
 	}
 
@@ -113,7 +113,8 @@ class DakkaHTTPRequest : HTTPRequest {
 
 	this(HTTPReqResp reqresp) {
 		auto data = reqresp.request;
-		requestImpl = new HTTPServerRequest(data.timeCreated, data.port);
+        import std.datetime : SysTime;
+        requestImpl = new HTTPServerRequest(SysTime.fromISOExtString(data.timeCreated), data.port);
 
 		mixin(settingFromType!(RequestData, "data")(11));
 		foreach(k, v; data.headers) {

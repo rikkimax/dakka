@@ -35,7 +35,7 @@ final struct RequestData {
 	string[string] form;
 
 	ushort port;
-	SysTime timeCreated;
+	string timeCreated;
 }
 
 class HTTPReqResp : Actor {
@@ -49,12 +49,12 @@ class HTTPReqResp : Actor {
 	}
 
 	@DakkaLocalOnly
-	void assignData(HTTPServerRequest request, HTTPServerResponse response) {
+	void assignData(HTTPServerRequest request, HTTPServerResponse response, Session session) {
 		synchronized {
 			reassigned = true;
 			request_ = request;
 			response_ = response;
-			session_ = request.session;
+			session_ = session;
 		}
 	}
 
@@ -89,7 +89,7 @@ class HTTPReqResp : Actor {
 					foreach(key, value; request_.form)
 						headers[key] = value;
 					ushort port = *cast(ushort*)(&request_)[SysTime.sizeof + FixedAppender!(string, 31).sizeof]; // workaround
-					return mixin("RequestData(" ~ argsFromNames!(RequestData, "request_")(11) ~ ", headers, query, form, port, request_.timeCreated)");
+                    return mixin("RequestData(" ~ argsFromNames!(RequestData, "request_")(11) ~ ", headers, query, form, port, request_.timeCreated.toISOExtString)");
 				}
 			}
 
@@ -179,7 +179,7 @@ class HTTPReqResp : Actor {
 			}
 		}
 
-		string[] session_keys() {
+		/*string[] session_keys() {
 			synchronized {
 				assert(session_.id !is null, "Session is currently null. Cannot get id from it.");
 				string[] ret;
@@ -188,7 +188,8 @@ class HTTPReqResp : Actor {
 				}
 				return ret;
 			}
-		}
+            return null;
+		}*/
 	}
 }
 

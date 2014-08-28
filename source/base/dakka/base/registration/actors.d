@@ -311,7 +311,7 @@ private {
 				}
 			}
 			static if (hasReturnValue!(T, m))
-            	return ReturnType!(mixin("t." ~ m)).init;
+            	return U.init;
 		}
 	}
 }
