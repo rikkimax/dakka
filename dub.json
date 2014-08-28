@@ -14,7 +14,7 @@
 			},
 			"versions": ["VibeCustomMain"],
 			"sourcePaths": ["source/base/dakka"],
-			"sourceImportPaths": ["source/base"]
+			"importPaths": ["source/base"]
 		},
 		{
 			"name": "vibe-d_wrappers",
@@ -22,7 +22,7 @@
 				"dakka:base": "~master"
 			},
 			"sourcePaths": ["source/base/dakka", "source/vibe-d_wrappers/dakka"],
-			"sourceImportPaths": ["source/vibe-d_wrappers"]
+			"importPaths": ["source/vibe-d_wrappers"]
 		},
 		{
 			"name": "test",
