@@ -179,7 +179,7 @@ class HTTPReqResp : Actor {
 			}
 		}
 
-		/*string[] session_keys() {
+		string[] session_keys() {
 			synchronized {
 				assert(session_.id !is null, "Session is currently null. Cannot get id from it.");
 				string[] ret;
@@ -188,8 +188,7 @@ class HTTPReqResp : Actor {
 				}
 				return ret;
 			}
-            return null;
-		}*/
+		}
 	}
 }
 

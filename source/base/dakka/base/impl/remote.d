@@ -1,7 +1,7 @@
 ﻿module dakka.base.impl.remote;
 import dakka.base.impl.defs;
 import dakka.base.defs;
-import std.traits : ParameterIdentifierTuple, ParameterTypeTuple, ReturnType;
+import std.traits : ParameterIdentifierTuple, ParameterTypeTuple, ReturnType, isArray, isSomeString;
 
 pure string generateFuncRemoteHandler(T : Actor, string m, T t = T.init)() {
 	string ret;
@@ -34,13 +34,17 @@ pure string generateFuncRemoteHandler(T : Actor, string m, T t = T.init)() {
 		static if (is(ReturnType!(mixin("t." ~ m)) == class) && is(ReturnType!(mixin("t." ~ m)) : Actor)) {
 			ret ~= "            return grabActorFromData!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ")(decereal);";
 		} else {
-            // TODO: array support
-			ret ~= "            return decereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
+            if (isArray!(ReturnType!(__traits(getMember, t, m))) && !isSomeString!(ReturnType!(__traits(getMember, t, m)))) {
+                ret ~= "            import dakka.base.remotes.messages;\n";
+                ret ~= "            RawConvTypes!(string[]) ret;\n";
+                ret ~= "            ret.bytes = odata;\n";
+                ret ~= "            return ret.value;\n";
+            } else
+			    ret ~= "            return decereal.value!(" ~ typeText!(ReturnType!(__traits(getMember, t, m))) ~ ");\n";
 		}
 	} else {
 		// non blocking request
 		ret ~= "            getDirector().callClassNonBlocking(remoteAddressIdentifier, identifier, \"" ~ m ~ "\", cast(ubyte[])cereal.bytes);\n";
 	}
-
 	return ret;
 }

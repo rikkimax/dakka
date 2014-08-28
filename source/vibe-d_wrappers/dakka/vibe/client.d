@@ -97,9 +97,9 @@ final struct DakkaSession {
 	}
 
 	int opApply(int delegate(string key, string value) del) {
-		/*foreach(key; reqresp_.session_keys)
+		foreach(key; reqresp_.session_keys)
 			if( auto ret = del(key, reqresp_.session_get(key)) != 0 )
-				return ret;*/
+				return ret;
 		return 0;
 	}
 
