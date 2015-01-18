@@ -88,7 +88,7 @@ class HTTPReqResp : Actor {
 					string[string] form;
 					foreach(key, value; request_.form)
 						headers[key] = value;
-					ushort port = *cast(ushort*)(&request_)[SysTime.sizeof + FixedAppender!(string, 31).sizeof]; // workaround
+					ushort port = request_.clientAddress.port;
                     return mixin("RequestData(" ~ argsFromNames!(RequestData, "request_")(11) ~ ", headers, query, form, port, request_.timeCreated.toISOExtString)");
 				}
 			}
