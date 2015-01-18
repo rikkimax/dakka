@@ -28,7 +28,7 @@
 			"name": "test",
 			"sourceFiles": ["source/test.d"],
 			"dependencies": {
-			    "dakka:base": "~master"
+			    "dakka:base": "*"
 			}
 		}
 	]
