@@ -19,7 +19,7 @@
 		{
 			"name": "vibe-d_wrappers",
 			"dependencies": {
-				"dakka:base": "~master"
+				"dakka:base": "*"
 			},
 			"sourcePaths": ["source/base/dakka", "source/vibe-d_wrappers/dakka"],
 			"importPaths": ["source/vibe-d_wrappers"]
